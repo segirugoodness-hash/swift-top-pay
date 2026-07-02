@@ -9,8 +9,44 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ElectricityRouteImport } from './routes/electricity'
+import { Route as EducationRouteImport } from './routes/education'
+import { Route as DataRouteImport } from './routes/data'
+import { Route as CableRouteImport } from './routes/cable'
+import { Route as AirtimeToCashRouteImport } from './routes/airtime-to-cash'
+import { Route as AirtimeRouteImport } from './routes/airtime'
 import { Route as IndexRouteImport } from './routes/index'
 
+const ElectricityRoute = ElectricityRouteImport.update({
+  id: '/electricity',
+  path: '/electricity',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EducationRoute = EducationRouteImport.update({
+  id: '/education',
+  path: '/education',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DataRoute = DataRouteImport.update({
+  id: '/data',
+  path: '/data',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CableRoute = CableRouteImport.update({
+  id: '/cable',
+  path: '/cable',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AirtimeToCashRoute = AirtimeToCashRouteImport.update({
+  id: '/airtime-to-cash',
+  path: '/airtime-to-cash',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AirtimeRoute = AirtimeRouteImport.update({
+  id: '/airtime',
+  path: '/airtime',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -19,28 +55,116 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/airtime': typeof AirtimeRoute
+  '/airtime-to-cash': typeof AirtimeToCashRoute
+  '/cable': typeof CableRoute
+  '/data': typeof DataRoute
+  '/education': typeof EducationRoute
+  '/electricity': typeof ElectricityRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/airtime': typeof AirtimeRoute
+  '/airtime-to-cash': typeof AirtimeToCashRoute
+  '/cable': typeof CableRoute
+  '/data': typeof DataRoute
+  '/education': typeof EducationRoute
+  '/electricity': typeof ElectricityRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/airtime': typeof AirtimeRoute
+  '/airtime-to-cash': typeof AirtimeToCashRoute
+  '/cable': typeof CableRoute
+  '/data': typeof DataRoute
+  '/education': typeof EducationRoute
+  '/electricity': typeof ElectricityRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/airtime'
+    | '/airtime-to-cash'
+    | '/cable'
+    | '/data'
+    | '/education'
+    | '/electricity'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/airtime'
+    | '/airtime-to-cash'
+    | '/cable'
+    | '/data'
+    | '/education'
+    | '/electricity'
+  id:
+    | '__root__'
+    | '/'
+    | '/airtime'
+    | '/airtime-to-cash'
+    | '/cable'
+    | '/data'
+    | '/education'
+    | '/electricity'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AirtimeRoute: typeof AirtimeRoute
+  AirtimeToCashRoute: typeof AirtimeToCashRoute
+  CableRoute: typeof CableRoute
+  DataRoute: typeof DataRoute
+  EducationRoute: typeof EducationRoute
+  ElectricityRoute: typeof ElectricityRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/electricity': {
+      id: '/electricity'
+      path: '/electricity'
+      fullPath: '/electricity'
+      preLoaderRoute: typeof ElectricityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/education': {
+      id: '/education'
+      path: '/education'
+      fullPath: '/education'
+      preLoaderRoute: typeof EducationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/data': {
+      id: '/data'
+      path: '/data'
+      fullPath: '/data'
+      preLoaderRoute: typeof DataRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cable': {
+      id: '/cable'
+      path: '/cable'
+      fullPath: '/cable'
+      preLoaderRoute: typeof CableRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/airtime-to-cash': {
+      id: '/airtime-to-cash'
+      path: '/airtime-to-cash'
+      fullPath: '/airtime-to-cash'
+      preLoaderRoute: typeof AirtimeToCashRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/airtime': {
+      id: '/airtime'
+      path: '/airtime'
+      fullPath: '/airtime'
+      preLoaderRoute: typeof AirtimeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -53,6 +177,12 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AirtimeRoute: AirtimeRoute,
+  AirtimeToCashRoute: AirtimeToCashRoute,
+  CableRoute: CableRoute,
+  DataRoute: DataRoute,
+  EducationRoute: EducationRoute,
+  ElectricityRoute: ElectricityRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
