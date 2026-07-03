@@ -9,6 +9,8 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedElectricityRouteImport } from './routes/_authenticated/electricity'
 import { Route as AuthenticatedEducationRouteImport } from './routes/_authenticated/education'
@@ -17,54 +19,65 @@ import { Route as AuthenticatedCableRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedAirtimeToCashRouteImport } from './routes/_authenticated/airtime-to-cash'
 import { Route as AuthenticatedAirtimeRouteImport } from './routes/_authenticated/airtime'
 
-const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
-  id: '/_authenticated/',
-  path: '/',
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedElectricityRoute =
   AuthenticatedElectricityRouteImport.update({
-    id: '/_authenticated/electricity',
+    id: '/electricity',
     path: '/electricity',
-    getParentRoute: () => rootRouteImport,
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedEducationRoute = AuthenticatedEducationRouteImport.update({
-  id: '/_authenticated/education',
+  id: '/education',
   path: '/education',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedDataRoute = AuthenticatedDataRouteImport.update({
-  id: '/_authenticated/data',
+  id: '/data',
   path: '/data',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedCableRoute = AuthenticatedCableRouteImport.update({
-  id: '/_authenticated/cable',
+  id: '/cable',
   path: '/cable',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAirtimeToCashRoute =
   AuthenticatedAirtimeToCashRouteImport.update({
-    id: '/_authenticated/airtime-to-cash',
+    id: '/airtime-to-cash',
     path: '/airtime-to-cash',
-    getParentRoute: () => rootRouteImport,
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAirtimeRoute = AuthenticatedAirtimeRouteImport.update({
-  id: '/_authenticated/airtime',
+  id: '/airtime',
   path: '/airtime',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
+  '/': typeof AuthenticatedIndexRoute
+  '/auth': typeof AuthRoute
   '/airtime': typeof AuthenticatedAirtimeRoute
   '/airtime-to-cash': typeof AuthenticatedAirtimeToCashRoute
   '/cable': typeof AuthenticatedCableRoute
   '/data': typeof AuthenticatedDataRoute
   '/education': typeof AuthenticatedEducationRoute
   '/electricity': typeof AuthenticatedElectricityRoute
-  '/': typeof AuthenticatedIndexRoute
 }
 export interface FileRoutesByTo {
+  '/auth': typeof AuthRoute
   '/airtime': typeof AuthenticatedAirtimeRoute
   '/airtime-to-cash': typeof AuthenticatedAirtimeToCashRoute
   '/cable': typeof AuthenticatedCableRoute
@@ -75,6 +88,8 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
   '/_authenticated/airtime': typeof AuthenticatedAirtimeRoute
   '/_authenticated/airtime-to-cash': typeof AuthenticatedAirtimeToCashRoute
   '/_authenticated/cable': typeof AuthenticatedCableRoute
@@ -86,15 +101,17 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/'
+    | '/auth'
     | '/airtime'
     | '/airtime-to-cash'
     | '/cable'
     | '/data'
     | '/education'
     | '/electricity'
-    | '/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/auth'
     | '/airtime'
     | '/airtime-to-cash'
     | '/cable'
@@ -104,6 +121,8 @@ export interface FileRouteTypes {
     | '/'
   id:
     | '__root__'
+    | '/_authenticated'
+    | '/auth'
     | '/_authenticated/airtime'
     | '/_authenticated/airtime-to-cash'
     | '/_authenticated/cable'
@@ -114,6 +133,79 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
+}
+
+declare module '@tanstack/react-router' {
+  interface FileRoutesByPath {
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/': {
+      id: '/_authenticated/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/electricity': {
+      id: '/_authenticated/electricity'
+      path: '/electricity'
+      fullPath: '/electricity'
+      preLoaderRoute: typeof AuthenticatedElectricityRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/education': {
+      id: '/_authenticated/education'
+      path: '/education'
+      fullPath: '/education'
+      preLoaderRoute: typeof AuthenticatedEducationRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/data': {
+      id: '/_authenticated/data'
+      path: '/data'
+      fullPath: '/data'
+      preLoaderRoute: typeof AuthenticatedDataRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/cable': {
+      id: '/_authenticated/cable'
+      path: '/cable'
+      fullPath: '/cable'
+      preLoaderRoute: typeof AuthenticatedCableRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/airtime-to-cash': {
+      id: '/_authenticated/airtime-to-cash'
+      path: '/airtime-to-cash'
+      fullPath: '/airtime-to-cash'
+      preLoaderRoute: typeof AuthenticatedAirtimeToCashRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/airtime': {
+      id: '/_authenticated/airtime'
+      path: '/airtime'
+      fullPath: '/airtime'
+      preLoaderRoute: typeof AuthenticatedAirtimeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+  }
+}
+
+interface AuthenticatedRouteRouteChildren {
   AuthenticatedAirtimeRoute: typeof AuthenticatedAirtimeRoute
   AuthenticatedAirtimeToCashRoute: typeof AuthenticatedAirtimeToCashRoute
   AuthenticatedCableRoute: typeof AuthenticatedCableRoute
@@ -123,61 +215,7 @@ export interface RootRouteChildren {
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
 
-declare module '@tanstack/react-router' {
-  interface FileRoutesByPath {
-    '/_authenticated/': {
-      id: '/_authenticated/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/electricity': {
-      id: '/_authenticated/electricity'
-      path: '/electricity'
-      fullPath: '/electricity'
-      preLoaderRoute: typeof AuthenticatedElectricityRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/education': {
-      id: '/_authenticated/education'
-      path: '/education'
-      fullPath: '/education'
-      preLoaderRoute: typeof AuthenticatedEducationRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/data': {
-      id: '/_authenticated/data'
-      path: '/data'
-      fullPath: '/data'
-      preLoaderRoute: typeof AuthenticatedDataRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/cable': {
-      id: '/_authenticated/cable'
-      path: '/cable'
-      fullPath: '/cable'
-      preLoaderRoute: typeof AuthenticatedCableRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/airtime-to-cash': {
-      id: '/_authenticated/airtime-to-cash'
-      path: '/airtime-to-cash'
-      fullPath: '/airtime-to-cash'
-      preLoaderRoute: typeof AuthenticatedAirtimeToCashRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/airtime': {
-      id: '/_authenticated/airtime'
-      path: '/airtime'
-      fullPath: '/airtime'
-      preLoaderRoute: typeof AuthenticatedAirtimeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-  }
-}
-
-const rootRouteChildren: RootRouteChildren = {
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAirtimeRoute: AuthenticatedAirtimeRoute,
   AuthenticatedAirtimeToCashRoute: AuthenticatedAirtimeToCashRoute,
   AuthenticatedCableRoute: AuthenticatedCableRoute,
@@ -185,6 +223,14 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedEducationRoute: AuthenticatedEducationRoute,
   AuthenticatedElectricityRoute: AuthenticatedElectricityRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
+const rootRouteChildren: RootRouteChildren = {
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

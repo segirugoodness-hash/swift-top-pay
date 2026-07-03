@@ -42,7 +42,7 @@ export async function spendWallet(input: PurchaseInput): Promise<boolean> {
     type: input.type,
     amount: input.amount,
     status: "success",
-    metadata: input.metadata ?? {},
+    metadata: (input.metadata ?? {}) as never,
   });
   return true;
 }
