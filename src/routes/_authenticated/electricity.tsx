@@ -14,8 +14,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { spendWallet } from "@/lib/purchase";
+import { useQueryClient } from "@tanstack/react-query";
 
-export const Route = createFileRoute("/electricity")({
+export const Route = createFileRoute("/_authenticated/electricity")({
   component: ElectricityPage,
 });
 
@@ -24,13 +26,23 @@ function ElectricityPage() {
   const [meterType, setMeterType] = useState("prepaid");
   const [meter, setMeter] = useState("");
   const [amount, setAmount] = useState("");
+  const [busy, setBusy] = useState(false);
+  const qc = useQueryClient();
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!disco) return toast.error("Select a Disco");
-    if (meter.length < 10) return toast.error("Enter a valid meter number");
-    if (!amount) return toast.error("Enter an amount");
-    toast.success(`₦${amount} sent to meter ${meter}`);
+    if (meter.length < 10) return toast.error("Meter number must be at least 10 digits");
+    const amt = parseInt(amount, 10);
+    if (!amt || amt < 500) return toast.error("Minimum amount is ₦500");
+    setBusy(true);
+    const ok = await spendWallet({ type: "electricity", amount: amt, metadata: { disco, meter, meterType } });
+    setBusy(false);
+    if (!ok) return;
+    toast.success(`₦${amt.toLocaleString()} sent to meter ${meter}`);
+    qc.invalidateQueries({ queryKey: ["profile"] });
+    qc.invalidateQueries({ queryKey: ["transactions", "recent"] });
+    setAmount("");
   }
 
   return (
@@ -101,8 +113,8 @@ function ElectricityPage() {
           />
         </div>
 
-        <Button type="submit" className="mt-auto h-12 rounded-full text-base font-semibold">
-          Continue
+        <Button type="submit" disabled={busy} className="mt-auto h-12 rounded-full text-base font-semibold">
+          {busy ? "Processing…" : amount ? `Pay ₦${Number(amount).toLocaleString()}` : "Continue"}
         </Button>
       </form>
     </div>

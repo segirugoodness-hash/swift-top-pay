@@ -9,82 +9,100 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ElectricityRouteImport } from './routes/electricity'
-import { Route as EducationRouteImport } from './routes/education'
-import { Route as DataRouteImport } from './routes/data'
-import { Route as CableRouteImport } from './routes/cable'
-import { Route as AirtimeToCashRouteImport } from './routes/airtime-to-cash'
-import { Route as AirtimeRouteImport } from './routes/airtime'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedElectricityRouteImport } from './routes/_authenticated/electricity'
+import { Route as AuthenticatedEducationRouteImport } from './routes/_authenticated/education'
+import { Route as AuthenticatedDataRouteImport } from './routes/_authenticated/data'
+import { Route as AuthenticatedCableRouteImport } from './routes/_authenticated/cable'
+import { Route as AuthenticatedAirtimeToCashRouteImport } from './routes/_authenticated/airtime-to-cash'
+import { Route as AuthenticatedAirtimeRouteImport } from './routes/_authenticated/airtime'
 
-const ElectricityRoute = ElectricityRouteImport.update({
-  id: '/electricity',
-  path: '/electricity',
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const EducationRoute = EducationRouteImport.update({
-  id: '/education',
-  path: '/education',
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DataRoute = DataRouteImport.update({
-  id: '/data',
-  path: '/data',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CableRoute = CableRouteImport.update({
-  id: '/cable',
-  path: '/cable',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AirtimeToCashRoute = AirtimeToCashRouteImport.update({
-  id: '/airtime-to-cash',
-  path: '/airtime-to-cash',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AirtimeRoute = AirtimeRouteImport.update({
-  id: '/airtime',
-  path: '/airtime',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IndexRoute = IndexRouteImport.update({
+const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedElectricityRoute =
+  AuthenticatedElectricityRouteImport.update({
+    id: '/electricity',
+    path: '/electricity',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedEducationRoute = AuthenticatedEducationRouteImport.update({
+  id: '/education',
+  path: '/education',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDataRoute = AuthenticatedDataRouteImport.update({
+  id: '/data',
+  path: '/data',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedCableRoute = AuthenticatedCableRouteImport.update({
+  id: '/cable',
+  path: '/cable',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAirtimeToCashRoute =
+  AuthenticatedAirtimeToCashRouteImport.update({
+    id: '/airtime-to-cash',
+    path: '/airtime-to-cash',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAirtimeRoute = AuthenticatedAirtimeRouteImport.update({
+  id: '/airtime',
+  path: '/airtime',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/airtime': typeof AirtimeRoute
-  '/airtime-to-cash': typeof AirtimeToCashRoute
-  '/cable': typeof CableRoute
-  '/data': typeof DataRoute
-  '/education': typeof EducationRoute
-  '/electricity': typeof ElectricityRoute
+  '/': typeof AuthenticatedIndexRoute
+  '/auth': typeof AuthRoute
+  '/airtime': typeof AuthenticatedAirtimeRoute
+  '/airtime-to-cash': typeof AuthenticatedAirtimeToCashRoute
+  '/cable': typeof AuthenticatedCableRoute
+  '/data': typeof AuthenticatedDataRoute
+  '/education': typeof AuthenticatedEducationRoute
+  '/electricity': typeof AuthenticatedElectricityRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/airtime': typeof AirtimeRoute
-  '/airtime-to-cash': typeof AirtimeToCashRoute
-  '/cable': typeof CableRoute
-  '/data': typeof DataRoute
-  '/education': typeof EducationRoute
-  '/electricity': typeof ElectricityRoute
+  '/auth': typeof AuthRoute
+  '/airtime': typeof AuthenticatedAirtimeRoute
+  '/airtime-to-cash': typeof AuthenticatedAirtimeToCashRoute
+  '/cable': typeof AuthenticatedCableRoute
+  '/data': typeof AuthenticatedDataRoute
+  '/education': typeof AuthenticatedEducationRoute
+  '/electricity': typeof AuthenticatedElectricityRoute
+  '/': typeof AuthenticatedIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/airtime': typeof AirtimeRoute
-  '/airtime-to-cash': typeof AirtimeToCashRoute
-  '/cable': typeof CableRoute
-  '/data': typeof DataRoute
-  '/education': typeof EducationRoute
-  '/electricity': typeof ElectricityRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/_authenticated/airtime': typeof AuthenticatedAirtimeRoute
+  '/_authenticated/airtime-to-cash': typeof AuthenticatedAirtimeToCashRoute
+  '/_authenticated/cable': typeof AuthenticatedCableRoute
+  '/_authenticated/data': typeof AuthenticatedDataRoute
+  '/_authenticated/education': typeof AuthenticatedEducationRoute
+  '/_authenticated/electricity': typeof AuthenticatedElectricityRoute
+  '/_authenticated/': typeof AuthenticatedIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/auth'
     | '/airtime'
     | '/airtime-to-cash'
     | '/cable'
@@ -93,96 +111,126 @@ export interface FileRouteTypes {
     | '/electricity'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
+    | '/auth'
     | '/airtime'
     | '/airtime-to-cash'
     | '/cable'
     | '/data'
     | '/education'
     | '/electricity'
+    | '/'
   id:
     | '__root__'
-    | '/'
-    | '/airtime'
-    | '/airtime-to-cash'
-    | '/cable'
-    | '/data'
-    | '/education'
-    | '/electricity'
+    | '/_authenticated'
+    | '/auth'
+    | '/_authenticated/airtime'
+    | '/_authenticated/airtime-to-cash'
+    | '/_authenticated/cable'
+    | '/_authenticated/data'
+    | '/_authenticated/education'
+    | '/_authenticated/electricity'
+    | '/_authenticated/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  AirtimeRoute: typeof AirtimeRoute
-  AirtimeToCashRoute: typeof AirtimeToCashRoute
-  CableRoute: typeof CableRoute
-  DataRoute: typeof DataRoute
-  EducationRoute: typeof EducationRoute
-  ElectricityRoute: typeof ElectricityRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/electricity': {
-      id: '/electricity'
-      path: '/electricity'
-      fullPath: '/electricity'
-      preLoaderRoute: typeof ElectricityRouteImport
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/education': {
-      id: '/education'
-      path: '/education'
-      fullPath: '/education'
-      preLoaderRoute: typeof EducationRouteImport
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/data': {
-      id: '/data'
-      path: '/data'
-      fullPath: '/data'
-      preLoaderRoute: typeof DataRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cable': {
-      id: '/cable'
-      path: '/cable'
-      fullPath: '/cable'
-      preLoaderRoute: typeof CableRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/airtime-to-cash': {
-      id: '/airtime-to-cash'
-      path: '/airtime-to-cash'
-      fullPath: '/airtime-to-cash'
-      preLoaderRoute: typeof AirtimeToCashRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/airtime': {
-      id: '/airtime'
-      path: '/airtime'
-      fullPath: '/airtime'
-      preLoaderRoute: typeof AirtimeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/': {
-      id: '/'
+    '/_authenticated/': {
+      id: '/_authenticated/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/electricity': {
+      id: '/_authenticated/electricity'
+      path: '/electricity'
+      fullPath: '/electricity'
+      preLoaderRoute: typeof AuthenticatedElectricityRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/education': {
+      id: '/_authenticated/education'
+      path: '/education'
+      fullPath: '/education'
+      preLoaderRoute: typeof AuthenticatedEducationRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/data': {
+      id: '/_authenticated/data'
+      path: '/data'
+      fullPath: '/data'
+      preLoaderRoute: typeof AuthenticatedDataRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/cable': {
+      id: '/_authenticated/cable'
+      path: '/cable'
+      fullPath: '/cable'
+      preLoaderRoute: typeof AuthenticatedCableRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/airtime-to-cash': {
+      id: '/_authenticated/airtime-to-cash'
+      path: '/airtime-to-cash'
+      fullPath: '/airtime-to-cash'
+      preLoaderRoute: typeof AuthenticatedAirtimeToCashRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/airtime': {
+      id: '/_authenticated/airtime'
+      path: '/airtime'
+      fullPath: '/airtime'
+      preLoaderRoute: typeof AuthenticatedAirtimeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAirtimeRoute: typeof AuthenticatedAirtimeRoute
+  AuthenticatedAirtimeToCashRoute: typeof AuthenticatedAirtimeToCashRoute
+  AuthenticatedCableRoute: typeof AuthenticatedCableRoute
+  AuthenticatedDataRoute: typeof AuthenticatedDataRoute
+  AuthenticatedEducationRoute: typeof AuthenticatedEducationRoute
+  AuthenticatedElectricityRoute: typeof AuthenticatedElectricityRoute
+  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAirtimeRoute: AuthenticatedAirtimeRoute,
+  AuthenticatedAirtimeToCashRoute: AuthenticatedAirtimeToCashRoute,
+  AuthenticatedCableRoute: AuthenticatedCableRoute,
+  AuthenticatedDataRoute: AuthenticatedDataRoute,
+  AuthenticatedEducationRoute: AuthenticatedEducationRoute,
+  AuthenticatedElectricityRoute: AuthenticatedElectricityRoute,
+  AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  AirtimeRoute: AirtimeRoute,
-  AirtimeToCashRoute: AirtimeToCashRoute,
-  CableRoute: CableRoute,
-  DataRoute: DataRoute,
-  EducationRoute: EducationRoute,
-  ElectricityRoute: ElectricityRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -6,8 +6,10 @@ import { NETWORKS } from "@/lib/vtu-options";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { spendWallet } from "@/lib/purchase";
+import { useQueryClient } from "@tanstack/react-query";
 
-export const Route = createFileRoute("/airtime")({
+export const Route = createFileRoute("/_authenticated/airtime")({
   component: AirtimePage,
 });
 
@@ -15,12 +17,22 @@ function AirtimePage() {
   const [network, setNetwork] = useState<string>("mtn");
   const [phone, setPhone] = useState("");
   const [amount, setAmount] = useState("");
+  const [busy, setBusy] = useState(false);
+  const qc = useQueryClient();
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (phone.length !== 11) return toast.error("Enter a valid 11-digit phone number");
-    if (!amount) return toast.error("Enter an amount");
-    toast.success(`₦${amount} airtime queued for ${phone}`);
+    const amt = parseInt(amount, 10);
+    if (!amt || amt < 50) return toast.error("Minimum airtime is ₦50");
+    setBusy(true);
+    const ok = await spendWallet({ type: "airtime", amount: amt, metadata: { network, phone } });
+    setBusy(false);
+    if (!ok) return;
+    toast.success(`₦${amt} airtime sent to ${phone}`);
+    qc.invalidateQueries({ queryKey: ["profile"] });
+    qc.invalidateQueries({ queryKey: ["transactions", "recent"] });
+    setAmount("");
   }
 
   return (
@@ -90,8 +102,8 @@ function AirtimePage() {
           </div>
         </div>
 
-        <Button type="submit" className="mt-auto h-12 rounded-full text-base font-semibold">
-          Continue
+        <Button type="submit" disabled={busy} className="mt-auto h-12 rounded-full text-base font-semibold">
+          {busy ? "Processing…" : amount ? `Pay ₦${Number(amount).toLocaleString()}` : "Continue"}
         </Button>
       </form>
     </div>

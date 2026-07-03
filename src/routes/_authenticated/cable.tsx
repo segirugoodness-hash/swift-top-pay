@@ -13,23 +13,39 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { spendWallet } from "@/lib/purchase";
+import { useQueryClient } from "@tanstack/react-query";
 
-export const Route = createFileRoute("/cable")({
+export const Route = createFileRoute("/_authenticated/cable")({
   component: CablePage,
 });
+
+function priceOf(pkg: string): number {
+  const m = pkg.match(/₦([\d,]+)/);
+  return m ? parseInt(m[1].replace(/,/g, ""), 10) : 0;
+}
 
 function CablePage() {
   const [providerId, setProviderId] = useState<string>("dstv");
   const [smartcard, setSmartcard] = useState("");
   const [pkg, setPkg] = useState("");
+  const [busy, setBusy] = useState(false);
+  const qc = useQueryClient();
 
   const provider = CABLE_PROVIDERS.find((p) => p.id === providerId)!;
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (smartcard.length < 10) return toast.error("Enter a valid smartcard number");
     if (!pkg) return toast.error("Select a package");
-    toast.success(`${provider.name} — ${pkg} queued`);
+    const amt = priceOf(pkg);
+    setBusy(true);
+    const ok = await spendWallet({ type: "cable", amount: amt, metadata: { provider: provider.name, smartcard, package: pkg } });
+    setBusy(false);
+    if (!ok) return;
+    toast.success(`${provider.name} — ${pkg} activated`);
+    qc.invalidateQueries({ queryKey: ["profile"] });
+    qc.invalidateQueries({ queryKey: ["transactions", "recent"] });
   }
 
   return (
@@ -88,8 +104,8 @@ function CablePage() {
           </Select>
         </div>
 
-        <Button type="submit" className="mt-auto h-12 rounded-full text-base font-semibold">
-          Continue
+        <Button type="submit" disabled={busy} className="mt-auto h-12 rounded-full text-base font-semibold">
+          {busy ? "Processing…" : pkg ? `Pay ₦${priceOf(pkg).toLocaleString()}` : "Continue"}
         </Button>
       </form>
     </div>
