@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
-export const Route = createFileRoute("/electricity")({
+export const Route = createFileRoute("/_authenticated/electricity")({
   component: ElectricityPage,
 });
 

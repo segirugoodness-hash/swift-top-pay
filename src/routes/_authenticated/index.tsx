@@ -4,7 +4,7 @@ import { WalletCard } from "@/components/WalletCard";
 import { ServiceCard } from "@/components/ServiceCard";
 import { BottomNav } from "@/components/BottomNav";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/_authenticated/")({
   component: Dashboard,
 });
 

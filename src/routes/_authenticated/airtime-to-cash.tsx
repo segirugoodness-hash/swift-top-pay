@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export const Route = createFileRoute("/airtime-to-cash")({
+export const Route = createFileRoute("/_authenticated/airtime-to-cash")({
   component: AirtimeToCashPage,
 });
 

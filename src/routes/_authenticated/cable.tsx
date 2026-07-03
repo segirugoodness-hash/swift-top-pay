@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export const Route = createFileRoute("/cable")({
+export const Route = createFileRoute("/_authenticated/cable")({
   component: CablePage,
 });
 
