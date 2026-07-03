@@ -6,21 +6,39 @@ import { EXAMS } from "@/lib/vtu-options";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { spendWallet } from "@/lib/purchase";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/_authenticated/education")({
   component: EducationPage,
 });
 
+function priceOf(exam: string): number {
+  const p = EXAMS.find((e) => e.id === exam)?.price ?? "₦0";
+  return parseInt(p.replace(/[^\d]/g, ""), 10);
+}
+
 function EducationPage() {
   const [exam, setExam] = useState("waec");
   const [qty, setQty] = useState("1");
+  const [busy, setBusy] = useState(false);
+  const qc = useQueryClient();
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     const n = parseInt(qty || "0", 10);
     if (!n || n < 1) return toast.error("Enter a valid quantity");
-    toast.success(`${n} ${exam.toUpperCase()} PIN(s) queued`);
+    const amt = priceOf(exam) * n;
+    setBusy(true);
+    const ok = await spendWallet({ type: "education_pin", amount: amt, metadata: { exam, quantity: n } });
+    setBusy(false);
+    if (!ok) return;
+    toast.success(`${n} ${exam.toUpperCase()} PIN(s) purchased`);
+    qc.invalidateQueries({ queryKey: ["profile"] });
+    qc.invalidateQueries({ queryKey: ["transactions", "recent"] });
   }
+
+  const total = priceOf(exam) * (parseInt(qty || "0", 10) || 0);
 
   return (
     <div className="flex min-h-screen flex-col">
