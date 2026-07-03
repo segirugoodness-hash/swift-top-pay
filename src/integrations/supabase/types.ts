@@ -14,16 +14,171 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      admin_settings: {
+        Row: {
+          id: string
+          updated_at: string
+          use_dedicated_accounts: boolean
+        }
+        Insert: {
+          id?: string
+          updated_at?: string
+          use_dedicated_accounts?: boolean
+        }
+        Update: {
+          id?: string
+          updated_at?: string
+          use_dedicated_accounts?: boolean
+        }
+        Relationships: []
+      }
+      funding_requests: {
+        Row: {
+          account_name: string
+          account_number: string
+          amount: number
+          bank_name: string
+          created_at: string
+          expires_at: string
+          id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          account_name: string
+          account_number: string
+          amount: number
+          bank_name: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          account_name?: string
+          account_number?: string
+          amount?: number
+          bank_name?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          bvn: string | null
+          bvn_verified: boolean
+          created_at: string
+          dedicated_account_bank: string | null
+          dedicated_account_name: string | null
+          dedicated_account_number: string | null
+          full_name: string | null
+          id: string
+          phone: string | null
+          updated_at: string
+          wallet_balance: number
+        }
+        Insert: {
+          bvn?: string | null
+          bvn_verified?: boolean
+          created_at?: string
+          dedicated_account_bank?: string | null
+          dedicated_account_name?: string | null
+          dedicated_account_number?: string | null
+          full_name?: string | null
+          id: string
+          phone?: string | null
+          updated_at?: string
+          wallet_balance?: number
+        }
+        Update: {
+          bvn?: string | null
+          bvn_verified?: boolean
+          created_at?: string
+          dedicated_account_bank?: string | null
+          dedicated_account_name?: string | null
+          dedicated_account_number?: string | null
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string
+          wallet_balance?: number
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          metadata: Json
+          reference: string | null
+          status: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          metadata?: Json
+          reference?: string | null
+          status?: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          metadata?: Json
+          reference?: string | null
+          status?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +305,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+    },
   },
 } as const
