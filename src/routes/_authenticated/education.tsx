@@ -83,8 +83,8 @@ function EducationPage() {
           on file.
         </div>
 
-        <Button type="submit" className="mt-auto h-12 rounded-full text-base font-semibold">
-          Continue
+        <Button type="submit" disabled={busy} className="mt-auto h-12 rounded-full text-base font-semibold">
+          {busy ? "Processing…" : total ? `Pay ₦${total.toLocaleString()}` : "Continue"}
         </Button>
       </form>
     </div>
