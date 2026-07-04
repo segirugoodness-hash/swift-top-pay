@@ -4,14 +4,24 @@ import { toast } from "sonner";
 export type PurchaseInput = {
   type: string;
   amount: number;
+  pin: string;
   metadata?: Record<string, unknown>;
 };
 
-/** Validates wallet balance, deducts amount, records transaction. */
+/** Verifies transaction PIN, validates wallet balance, deducts amount, records transaction. */
 export async function spendWallet(input: PurchaseInput): Promise<boolean> {
   const { data: u } = await supabase.auth.getUser();
   if (!u.user) {
     toast.error("Please sign in first");
+    return false;
+  }
+  const { data: pinOk, error: pinErr } = await supabase.rpc("verify_transaction_pin", { _pin: input.pin });
+  if (pinErr) {
+    toast.error("Could not verify PIN");
+    return false;
+  }
+  if (!pinOk) {
+    toast.error("Incorrect transaction PIN");
     return false;
   }
   const { data: profile, error: pErr } = await supabase
