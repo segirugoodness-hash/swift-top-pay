@@ -74,6 +74,15 @@ function Dashboard() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {isAdmin && (
+            <Link
+              to="/admin"
+              aria-label="Admin console"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-primary/40 bg-primary/10 text-primary"
+            >
+              <Shield className="h-5 w-5" />
+            </Link>
+          )}
           <button
             className="relative flex h-10 w-10 items-center justify-center rounded-full border border-border bg-surface text-foreground"
             aria-label="Notifications"
