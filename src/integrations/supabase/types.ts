@@ -32,6 +32,45 @@ export type Database = {
         }
         Relationships: []
       }
+      data_plans: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          network: string
+          sort_order: number
+          updated_at: string
+          validity: string | null
+          wholesale_price: number
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          network: string
+          sort_order?: number
+          updated_at?: string
+          validity?: string | null
+          wholesale_price: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          network?: string
+          sort_order?: number
+          updated_at?: string
+          validity?: string | null
+          wholesale_price?: number
+        }
+        Relationships: []
+      }
       funding_requests: {
         Row: {
           account_name: string
@@ -68,6 +107,27 @@ export type Database = {
         }
         Relationships: []
       }
+      network_markups: {
+        Row: {
+          markup_type: string
+          markup_value: number
+          network: string
+          updated_at: string
+        }
+        Insert: {
+          markup_type?: string
+          markup_value?: number
+          network: string
+          updated_at?: string
+        }
+        Update: {
+          markup_type?: string
+          markup_value?: number
+          network?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           bvn: string | null
@@ -79,6 +139,7 @@ export type Database = {
           full_name: string | null
           id: string
           phone: string | null
+          transaction_pin_hash: string | null
           updated_at: string
           wallet_balance: number
         }
@@ -92,6 +153,7 @@ export type Database = {
           full_name?: string | null
           id: string
           phone?: string | null
+          transaction_pin_hash?: string | null
           updated_at?: string
           wallet_balance?: number
         }
@@ -105,6 +167,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           phone?: string | null
+          transaction_pin_hash?: string | null
           updated_at?: string
           wallet_balance?: number
         }
@@ -176,6 +239,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      set_transaction_pin: { Args: { _pin: string }; Returns: undefined }
+      verify_transaction_pin: { Args: { _pin: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user"
