@@ -12,6 +12,7 @@ export type Profile = {
   dedicated_account_number: string | null;
   dedicated_account_bank: string | null;
   dedicated_account_name: string | null;
+  transaction_pin_hash: string | null;
 };
 
 export function useProfile() {
