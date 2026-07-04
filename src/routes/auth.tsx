@@ -82,8 +82,8 @@ function AuthPage() {
       // For password recovery: user is now signed in, go to reset step
       setMode("reset");
     } else {
-      toast.success("Account verified");
-      navigate({ to: "/" });
+      toast.success("Account verified — set your transaction PIN");
+      navigate({ to: "/create-pin" });
     }
   }
 

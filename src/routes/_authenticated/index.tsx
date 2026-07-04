@@ -1,5 +1,6 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Bell, Phone, Wifi, Zap, Tv, GraduationCap, ArrowLeftRight, LogOut } from "lucide-react";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { Bell, Phone, Wifi, Zap, Tv, GraduationCap, ArrowLeftRight, LogOut, Shield } from "lucide-react";
 import { WalletCard } from "@/components/WalletCard";
 import { ServiceCard } from "@/components/ServiceCard";
 import { BottomNav } from "@/components/BottomNav";
@@ -23,6 +24,13 @@ function Dashboard() {
   const navigate = useNavigate();
   const qc = useQueryClient();
 
+  // Force PIN setup for new users
+  useEffect(() => {
+    if (profile && !profile.transaction_pin_hash) {
+      navigate({ to: "/create-pin", replace: true });
+    }
+  }, [profile, navigate]);
+
   const { data: recent } = useQuery({
     queryKey: ["transactions", "recent"],
     queryFn: async () => {
@@ -32,6 +40,16 @@ function Dashboard() {
         .order("created_at", { ascending: false })
         .limit(5);
       return data ?? [];
+    },
+  });
+
+  const { data: isAdmin } = useQuery({
+    queryKey: ["is_admin"],
+    queryFn: async () => {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) return false;
+      const { data } = await supabase.from("user_roles").select("role").eq("user_id", u.user.id).eq("role", "admin");
+      return (data?.length ?? 0) > 0;
     },
   });
 
