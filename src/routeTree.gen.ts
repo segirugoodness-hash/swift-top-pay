@@ -15,9 +15,11 @@ import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedElectricityRouteImport } from './routes/_authenticated/electricity'
 import { Route as AuthenticatedEducationRouteImport } from './routes/_authenticated/education'
 import { Route as AuthenticatedDataRouteImport } from './routes/_authenticated/data'
+import { Route as AuthenticatedCreatePinRouteImport } from './routes/_authenticated/create-pin'
 import { Route as AuthenticatedCableRouteImport } from './routes/_authenticated/cable'
 import { Route as AuthenticatedAirtimeToCashRouteImport } from './routes/_authenticated/airtime-to-cash'
 import { Route as AuthenticatedAirtimeRouteImport } from './routes/_authenticated/airtime'
+import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -49,6 +51,11 @@ const AuthenticatedDataRoute = AuthenticatedDataRouteImport.update({
   path: '/data',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedCreatePinRoute = AuthenticatedCreatePinRouteImport.update({
+  id: '/create-pin',
+  path: '/create-pin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedCableRoute = AuthenticatedCableRouteImport.update({
   id: '/cable',
   path: '/cable',
@@ -65,22 +72,31 @@ const AuthenticatedAirtimeRoute = AuthenticatedAirtimeRouteImport.update({
   path: '/airtime',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
+  '/admin': typeof AuthenticatedAdminRoute
   '/airtime': typeof AuthenticatedAirtimeRoute
   '/airtime-to-cash': typeof AuthenticatedAirtimeToCashRoute
   '/cable': typeof AuthenticatedCableRoute
+  '/create-pin': typeof AuthenticatedCreatePinRoute
   '/data': typeof AuthenticatedDataRoute
   '/education': typeof AuthenticatedEducationRoute
   '/electricity': typeof AuthenticatedElectricityRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
+  '/admin': typeof AuthenticatedAdminRoute
   '/airtime': typeof AuthenticatedAirtimeRoute
   '/airtime-to-cash': typeof AuthenticatedAirtimeToCashRoute
   '/cable': typeof AuthenticatedCableRoute
+  '/create-pin': typeof AuthenticatedCreatePinRoute
   '/data': typeof AuthenticatedDataRoute
   '/education': typeof AuthenticatedEducationRoute
   '/electricity': typeof AuthenticatedElectricityRoute
@@ -90,9 +106,11 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/airtime': typeof AuthenticatedAirtimeRoute
   '/_authenticated/airtime-to-cash': typeof AuthenticatedAirtimeToCashRoute
   '/_authenticated/cable': typeof AuthenticatedCableRoute
+  '/_authenticated/create-pin': typeof AuthenticatedCreatePinRoute
   '/_authenticated/data': typeof AuthenticatedDataRoute
   '/_authenticated/education': typeof AuthenticatedEducationRoute
   '/_authenticated/electricity': typeof AuthenticatedElectricityRoute
@@ -103,18 +121,22 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/admin'
     | '/airtime'
     | '/airtime-to-cash'
     | '/cable'
+    | '/create-pin'
     | '/data'
     | '/education'
     | '/electricity'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
+    | '/admin'
     | '/airtime'
     | '/airtime-to-cash'
     | '/cable'
+    | '/create-pin'
     | '/data'
     | '/education'
     | '/electricity'
@@ -123,9 +145,11 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/admin'
     | '/_authenticated/airtime'
     | '/_authenticated/airtime-to-cash'
     | '/_authenticated/cable'
+    | '/_authenticated/create-pin'
     | '/_authenticated/data'
     | '/_authenticated/education'
     | '/_authenticated/electricity'
@@ -181,6 +205,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDataRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/create-pin': {
+      id: '/_authenticated/create-pin'
+      path: '/create-pin'
+      fullPath: '/create-pin'
+      preLoaderRoute: typeof AuthenticatedCreatePinRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/cable': {
       id: '/_authenticated/cable'
       path: '/cable'
@@ -202,13 +233,22 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAirtimeRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedAirtimeRoute: typeof AuthenticatedAirtimeRoute
   AuthenticatedAirtimeToCashRoute: typeof AuthenticatedAirtimeToCashRoute
   AuthenticatedCableRoute: typeof AuthenticatedCableRoute
+  AuthenticatedCreatePinRoute: typeof AuthenticatedCreatePinRoute
   AuthenticatedDataRoute: typeof AuthenticatedDataRoute
   AuthenticatedEducationRoute: typeof AuthenticatedEducationRoute
   AuthenticatedElectricityRoute: typeof AuthenticatedElectricityRoute
@@ -216,9 +256,11 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedAirtimeRoute: AuthenticatedAirtimeRoute,
   AuthenticatedAirtimeToCashRoute: AuthenticatedAirtimeToCashRoute,
   AuthenticatedCableRoute: AuthenticatedCableRoute,
+  AuthenticatedCreatePinRoute: AuthenticatedCreatePinRoute,
   AuthenticatedDataRoute: AuthenticatedDataRoute,
   AuthenticatedEducationRoute: AuthenticatedEducationRoute,
   AuthenticatedElectricityRoute: AuthenticatedElectricityRoute,
