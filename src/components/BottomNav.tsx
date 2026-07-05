@@ -3,8 +3,8 @@ import { Home, Receipt, User } from "lucide-react";
 
 const items = [
   { to: "/" as const, icon: Home, label: "Home" },
-  { to: "/" as const, icon: Receipt, label: "History" },
-  { to: "/" as const, icon: User, label: "Profile" },
+  { to: "/history" as const, icon: Receipt, label: "History" },
+  { to: "/profile" as const, icon: User, label: "Profile" },
 ];
 
 export function BottomNav() {
