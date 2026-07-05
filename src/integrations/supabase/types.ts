@@ -36,6 +36,7 @@ export type Database = {
         Row: {
           category: string
           created_at: string
+          external_id: string | null
           id: string
           is_active: boolean
           name: string
@@ -48,6 +49,7 @@ export type Database = {
         Insert: {
           category: string
           created_at?: string
+          external_id?: string | null
           id?: string
           is_active?: boolean
           name: string
@@ -60,6 +62,7 @@ export type Database = {
         Update: {
           category?: string
           created_at?: string
+          external_id?: string | null
           id?: string
           is_active?: boolean
           name?: string
@@ -170,6 +173,24 @@ export type Database = {
           transaction_pin_hash?: string | null
           updated_at?: string
           wallet_balance?: number
+        }
+        Relationships: []
+      }
+      system_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value?: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: Json
         }
         Relationships: []
       }
