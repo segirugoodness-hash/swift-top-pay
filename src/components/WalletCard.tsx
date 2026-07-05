@@ -2,10 +2,12 @@ import { Eye, EyeOff, Plus, ArrowUpRight } from "lucide-react";
 import { useState } from "react";
 import { useProfile } from "@/hooks/useProfile";
 import { FundWalletDialog } from "@/components/FundWalletDialog";
+import { WithdrawDialog } from "@/components/WithdrawDialog";
 
 export function WalletCard() {
   const [visible, setVisible] = useState(true);
   const [fundOpen, setFundOpen] = useState(false);
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
   const { data: profile, isLoading } = useProfile();
   const balance = Number(profile?.wallet_balance ?? 0);
   return (
@@ -47,13 +49,17 @@ export function WalletCard() {
           >
             <Plus className="h-4 w-4" /> Fund
           </button>
-          <button className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-white/85 py-2.5 text-sm font-semibold text-black">
+          <button
+            onClick={() => setWithdrawOpen(true)}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-white/85 py-2.5 text-sm font-semibold text-black"
+          >
             <ArrowUpRight className="h-4 w-4" /> Withdraw
           </button>
         </div>
       </div>
 
       <FundWalletDialog open={fundOpen} onOpenChange={setFundOpen} />
+      <WithdrawDialog open={withdrawOpen} onOpenChange={setWithdrawOpen} />
     </>
   );
 }
