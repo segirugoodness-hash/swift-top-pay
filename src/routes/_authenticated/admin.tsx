@@ -12,14 +12,15 @@ import { toast } from "sonner";
 import { NETWORKS } from "@/lib/vtu-options";
 import { Trash2, RefreshCw, KeyRound, CheckCircle2 } from "lucide-react";
 import { saveOtapayKeys, syncOtapayPlans, getOtapayStatus } from "@/lib/otapay.functions";
+import { savePaystackKeys, getPaystackStatus } from "@/lib/paystack.functions";
+
+const OWNER_EMAIL = "segiruabdulfathi558@gmail.com";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   beforeLoad: async () => {
     const { data: u } = await supabase.auth.getUser();
     if (!u.user) throw redirect({ to: "/auth" });
-    const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", u.user.id);
-    const isAdmin = roles?.some((r) => r.role === "admin");
-    if (!isAdmin) throw redirect({ to: "/" });
+    if (u.user.email !== OWNER_EMAIL) throw redirect({ to: "/" });
   },
   component: AdminPage,
 });
@@ -247,6 +248,66 @@ function ApiSettingsPanel() {
             Stored in a private system_settings table. Only admins can read or update these values.
           </p>
         </div>
+      </div>
+      <PaystackPanel />
+    </div>
+  );
+}
+
+function PaystackPanel() {
+  const save = useServerFn(savePaystackKeys);
+  const status = useServerFn(getPaystackStatus);
+  const { data: st, refetch } = useQuery({
+    queryKey: ["paystack_status"],
+    queryFn: () => status(),
+  });
+  const [pub, setPub] = useState("");
+  const [sec, setSec] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function submit() {
+    if (!pub || !sec) return toast.error("Both Paystack keys are required");
+    setBusy(true);
+    try {
+      await save({ data: { public_key: pub, secret_key: sec } });
+      toast.success("Paystack keys saved securely");
+      setPub(""); setSec("");
+      refetch();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="rounded-2xl border border-border bg-surface p-4">
+      <div className="mb-2 flex items-center gap-2">
+        <KeyRound className="h-4 w-4 text-primary" />
+        <p className="text-sm font-semibold text-foreground">Paystack API credentials</p>
+      </div>
+      {st?.configured && (
+        <div className="mb-3 flex items-center gap-2 rounded-lg bg-primary/10 p-2 text-xs text-primary">
+          <CheckCircle2 className="h-3.5 w-3.5" />
+          <span>Configured · {st.public_key_masked}</span>
+        </div>
+      )}
+      <div className="space-y-3">
+        <div>
+          <Label htmlFor="pspub" className="mb-1 block text-xs">Paystack Public Key</Label>
+          <Input id="pspub" value={pub} onChange={(e) => setPub(e.target.value)} placeholder="pk_live_..." />
+        </div>
+        <div>
+          <Label htmlFor="pssec" className="mb-1 block text-xs">Paystack Secret Key</Label>
+          <Input id="pssec" type="password" value={sec} onChange={(e) => setSec(e.target.value)} placeholder="sk_live_..." />
+        </div>
+        <Button className="w-full" onClick={submit} disabled={busy}>
+          {busy ? "Saving…" : "Save Paystack Keys"}
+        </Button>
+        <p className="text-[11px] text-muted-foreground">
+          Used for wallet funding (Inline checkout), BVN validation, and dedicated virtual accounts.
+          Webhook URL: <span className="font-mono text-foreground">/api/public/webhooks/paystack</span>
+        </p>
       </div>
     </div>
   );

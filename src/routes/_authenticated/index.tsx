@@ -4,6 +4,7 @@ import { Bell, Phone, Wifi, Zap, Tv, GraduationCap, ArrowLeftRight, LogOut, Shie
 import { WalletCard } from "@/components/WalletCard";
 import { ServiceCard } from "@/components/ServiceCard";
 import { BottomNav } from "@/components/BottomNav";
+import { UpgradeBanner } from "@/components/UpgradeBanner";
 import { useProfile } from "@/hooks/useProfile";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -100,7 +101,9 @@ function Dashboard() {
         </div>
       </header>
 
-      <div className="px-4">
+      <UpgradeBanner />
+
+      <div className="px-4 pt-3">
         <WalletCard />
       </div>
 
