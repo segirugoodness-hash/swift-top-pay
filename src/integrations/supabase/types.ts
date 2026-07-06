@@ -131,8 +131,42 @@ export type Database = {
         }
         Relationships: []
       }
+      paystack_events: {
+        Row: {
+          amount: number | null
+          event_id: string
+          event_type: string
+          id: string
+          processed_at: string
+          raw: Json
+          reference: string | null
+          user_id: string | null
+        }
+        Insert: {
+          amount?: number | null
+          event_id: string
+          event_type: string
+          id?: string
+          processed_at?: string
+          raw: Json
+          reference?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number | null
+          event_id?: string
+          event_type?: string
+          id?: string
+          processed_at?: string
+          raw?: Json
+          reference?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
+          account_tier: string
           bvn: string | null
           bvn_verified: boolean
           created_at: string
@@ -147,6 +181,7 @@ export type Database = {
           wallet_balance: number
         }
         Insert: {
+          account_tier?: string
           bvn?: string | null
           bvn_verified?: boolean
           created_at?: string
@@ -161,6 +196,7 @@ export type Database = {
           wallet_balance?: number
         }
         Update: {
+          account_tier?: string
           bvn?: string | null
           bvn_verified?: boolean
           created_at?: string
