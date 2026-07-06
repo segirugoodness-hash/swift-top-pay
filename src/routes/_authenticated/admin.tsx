@@ -12,14 +12,15 @@ import { toast } from "sonner";
 import { NETWORKS } from "@/lib/vtu-options";
 import { Trash2, RefreshCw, KeyRound, CheckCircle2 } from "lucide-react";
 import { saveOtapayKeys, syncOtapayPlans, getOtapayStatus } from "@/lib/otapay.functions";
+import { savePaystackKeys, getPaystackStatus } from "@/lib/paystack.functions";
+
+const OWNER_EMAIL = "segiruabdulfathi558@gmail.com";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   beforeLoad: async () => {
     const { data: u } = await supabase.auth.getUser();
     if (!u.user) throw redirect({ to: "/auth" });
-    const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", u.user.id);
-    const isAdmin = roles?.some((r) => r.role === "admin");
-    if (!isAdmin) throw redirect({ to: "/" });
+    if (u.user.email !== OWNER_EMAIL) throw redirect({ to: "/" });
   },
   component: AdminPage,
 });
