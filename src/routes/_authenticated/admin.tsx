@@ -124,6 +124,43 @@ function MarkupRow({ name, value, onSave }: { name: string; value: Markup; onSav
   );
 }
 
+function EarningsPanel() {
+  const earningsFn = useServerFn(getAdminEarnings);
+  const { data, refetch } = useQuery({
+    queryKey: ["admin_earnings"],
+    queryFn: () => earningsFn(),
+  });
+  const [payoutOpen, setPayoutOpen] = useState(false);
+  const balance = Number(data?.balance ?? 0);
+  const lifetime = Number(data?.lifetime_revenue ?? 0);
+  return (
+    <div className="rounded-2xl border border-primary/40 bg-gradient-to-br from-primary/10 to-primary/5 p-4">
+      <div className="mb-3 flex items-center gap-2">
+        <Wallet className="h-4 w-4 text-primary" />
+        <p className="text-sm font-semibold text-foreground">Platform revenue</p>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Available</p>
+          <p className="text-xl font-bold text-primary">₦{balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+        </div>
+        <div>
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Lifetime</p>
+          <p className="text-xl font-bold text-foreground">₦{lifetime.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+        </div>
+      </div>
+      <Button
+        onClick={() => setPayoutOpen(true)}
+        disabled={balance < 500}
+        className="mt-3 h-11 w-full rounded-full text-sm font-semibold"
+      >
+        <ArrowUpRight className="mr-2 h-4 w-4" /> Withdraw profits
+      </Button>
+      <AdminPayoutDialog open={payoutOpen} onOpenChange={setPayoutOpen} balance={balance} onSuccess={() => refetch()} />
+    </div>
+  );
+}
+
 function SyncPanel({ onSynced }: { onSynced: () => void }) {
   const sync = useServerFn(syncOtapayPlans);
   const [busy, setBusy] = useState(false);
