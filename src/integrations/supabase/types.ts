@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_earnings: {
+        Row: {
+          balance: number
+          id: string
+          lifetime_revenue: number
+          updated_at: string
+        }
+        Insert: {
+          balance?: number
+          id?: string
+          lifetime_revenue?: number
+          updated_at?: string
+        }
+        Update: {
+          balance?: number
+          id?: string
+          lifetime_revenue?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       admin_settings: {
         Row: {
           id: string
@@ -212,6 +233,27 @@ export type Database = {
         }
         Relationships: []
       }
+      service_locks: {
+        Row: {
+          acquired_at: string
+          expires_at: string
+          service_type: string
+          user_id: string
+        }
+        Insert: {
+          acquired_at?: string
+          expires_at?: string
+          service_type: string
+          user_id: string
+        }
+        Update: {
+          acquired_at?: string
+          expires_at?: string
+          service_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       system_settings: {
         Row: {
           key: string
@@ -234,32 +276,38 @@ export type Database = {
         Row: {
           amount: number
           created_at: string
+          error_message: string | null
           id: string
           metadata: Json
           reference: string | null
           status: string
           type: string
           user_id: string
+          wholesale_price: number | null
         }
         Insert: {
           amount: number
           created_at?: string
+          error_message?: string | null
           id?: string
           metadata?: Json
           reference?: string | null
           status?: string
           type: string
           user_id: string
+          wholesale_price?: number | null
         }
         Update: {
           amount?: number
           created_at?: string
+          error_message?: string | null
           id?: string
           metadata?: Json
           reference?: string | null
           status?: string
           type?: string
           user_id?: string
+          wholesale_price?: number | null
         }
         Relationships: []
       }
@@ -289,6 +337,42 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      begin_vend: {
+        Args: {
+          _metadata: Json
+          _pin: string
+          _reference: string
+          _retail: number
+          _type: string
+          _wholesale: number
+        }
+        Returns: string
+      }
+      change_transaction_pin: {
+        Args: { _current: string; _new: string }
+        Returns: undefined
+      }
+      complete_vend: {
+        Args: { _provider_ref?: string; _txn_id: string }
+        Returns: undefined
+      }
+      credit_a2c_settlement: {
+        Args: {
+          _airtime_amount: number
+          _metadata: Json
+          _reference: string
+          _user_id: string
+        }
+        Returns: undefined
+      }
+      debit_admin_earnings: {
+        Args: { _amount: number; _note: string }
+        Returns: undefined
+      }
+      fail_vend: {
+        Args: { _error: string; _txn_id: string }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -296,7 +380,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      release_service_lock: {
+        Args: { _service_type: string }
+        Returns: undefined
+      }
       set_transaction_pin: { Args: { _pin: string }; Returns: undefined }
+      try_acquire_service_lock: {
+        Args: { _service_type: string }
+        Returns: boolean
+      }
       verify_transaction_pin: { Args: { _pin: string }; Returns: boolean }
     }
     Enums: {
