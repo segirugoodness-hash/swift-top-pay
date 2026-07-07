@@ -10,9 +10,11 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { NETWORKS } from "@/lib/vtu-options";
-import { Trash2, RefreshCw, KeyRound, CheckCircle2 } from "lucide-react";
+import { Trash2, RefreshCw, KeyRound, CheckCircle2, Wallet, ArrowUpRight } from "lucide-react";
 import { saveOtapayKeys, syncOtapayPlans, getOtapayStatus } from "@/lib/otapay.functions";
 import { savePaystackKeys, getPaystackStatus } from "@/lib/paystack.functions";
+import { getAdminEarnings } from "@/lib/vend.functions";
+import { AdminPayoutDialog } from "@/components/AdminPayoutDialog";
 
 const OWNER_EMAIL = "segiruabdulfathi558@gmail.com";
 
@@ -55,7 +57,8 @@ function AdminPage() {
   return (
     <div className="flex min-h-screen flex-col pb-16">
       <PageHeader title="Admin Console" subtitle="Otapay sync · markup engine" />
-      <div className="px-4 py-4">
+      <div className="px-4 py-4 space-y-4">
+        <EarningsPanel />
         <Tabs defaultValue="markups">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="markups">Markups</TabsTrigger>
