@@ -1,11 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { BottomNav } from "@/components/BottomNav";
+import { ChangePinDialog } from "@/components/ChangePinDialog";
 import { useProfile } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { LogOut, ShieldCheck, User as UserIcon, Phone, Mail, Wallet } from "lucide-react";
+import { LogOut, ShieldCheck, User as UserIcon, Phone, Mail, Wallet, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/profile")({
