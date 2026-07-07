@@ -113,13 +113,10 @@ export const withdrawAdminEarnings = createServerFn({ method: "POST" })
     } catch (e) {
       // Refund earnings on any failure
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      await supabaseAdmin.rpc("credit_a2c_settlement" as never, {} as never).catch(() => {});
-      // Manual refund via direct update as fail-safe
-      await supabaseAdmin
-        .from("admin_earnings")
-        // @ts-expect-error dynamic rpc
-        .update({ balance: (await supabaseAdmin.from("admin_earnings").select("balance").eq("id", "global").maybeSingle()).data!.balance + data.amount })
-        .eq("id", "global");
+      const { data: cur } = await supabaseAdmin
+        .from("admin_earnings").select("balance").eq("id", "global").maybeSingle();
+      const bal = Number(cur?.balance ?? 0) + data.amount;
+      await supabaseAdmin.from("admin_earnings").update({ balance: bal }).eq("id", "global");
       throw new Error(e instanceof Error ? e.message : "Transfer failed — refunded");
     }
   });

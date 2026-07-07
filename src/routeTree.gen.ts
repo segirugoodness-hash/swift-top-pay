@@ -23,6 +23,8 @@ import { Route as AuthenticatedAirtimeToCashRouteImport } from './routes/_authen
 import { Route as AuthenticatedAirtimeRouteImport } from './routes/_authenticated/airtime'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as ApiPublicWebhooksPaystackRouteImport } from './routes/api/public/webhooks/paystack'
+import { Route as ApiPublicWebhooksOtapayA2cRouteImport } from './routes/api/public/webhooks/otapay-a2c'
+import { Route as ApiPublicHooksOtapaySyncRouteImport } from './routes/api/public/hooks/otapay-sync'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -96,6 +98,18 @@ const ApiPublicWebhooksPaystackRoute =
     path: '/api/public/webhooks/paystack',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicWebhooksOtapayA2cRoute =
+  ApiPublicWebhooksOtapayA2cRouteImport.update({
+    id: '/api/public/webhooks/otapay-a2c',
+    path: '/api/public/webhooks/otapay-a2c',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicHooksOtapaySyncRoute =
+  ApiPublicHooksOtapaySyncRouteImport.update({
+    id: '/api/public/hooks/otapay-sync',
+    path: '/api/public/hooks/otapay-sync',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -110,6 +124,8 @@ export interface FileRoutesByFullPath {
   '/electricity': typeof AuthenticatedElectricityRoute
   '/history': typeof AuthenticatedHistoryRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/api/public/hooks/otapay-sync': typeof ApiPublicHooksOtapaySyncRoute
+  '/api/public/webhooks/otapay-a2c': typeof ApiPublicWebhooksOtapayA2cRoute
   '/api/public/webhooks/paystack': typeof ApiPublicWebhooksPaystackRoute
 }
 export interface FileRoutesByTo {
@@ -125,6 +141,8 @@ export interface FileRoutesByTo {
   '/history': typeof AuthenticatedHistoryRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/': typeof AuthenticatedIndexRoute
+  '/api/public/hooks/otapay-sync': typeof ApiPublicHooksOtapaySyncRoute
+  '/api/public/webhooks/otapay-a2c': typeof ApiPublicWebhooksOtapayA2cRoute
   '/api/public/webhooks/paystack': typeof ApiPublicWebhooksPaystackRoute
 }
 export interface FileRoutesById {
@@ -142,6 +160,8 @@ export interface FileRoutesById {
   '/_authenticated/history': typeof AuthenticatedHistoryRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/api/public/hooks/otapay-sync': typeof ApiPublicHooksOtapaySyncRoute
+  '/api/public/webhooks/otapay-a2c': typeof ApiPublicWebhooksOtapayA2cRoute
   '/api/public/webhooks/paystack': typeof ApiPublicWebhooksPaystackRoute
 }
 export interface FileRouteTypes {
@@ -159,6 +179,8 @@ export interface FileRouteTypes {
     | '/electricity'
     | '/history'
     | '/profile'
+    | '/api/public/hooks/otapay-sync'
+    | '/api/public/webhooks/otapay-a2c'
     | '/api/public/webhooks/paystack'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -174,6 +196,8 @@ export interface FileRouteTypes {
     | '/history'
     | '/profile'
     | '/'
+    | '/api/public/hooks/otapay-sync'
+    | '/api/public/webhooks/otapay-a2c'
     | '/api/public/webhooks/paystack'
   id:
     | '__root__'
@@ -190,12 +214,16 @@ export interface FileRouteTypes {
     | '/_authenticated/history'
     | '/_authenticated/profile'
     | '/_authenticated/'
+    | '/api/public/hooks/otapay-sync'
+    | '/api/public/webhooks/otapay-a2c'
     | '/api/public/webhooks/paystack'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiPublicHooksOtapaySyncRoute: typeof ApiPublicHooksOtapaySyncRoute
+  ApiPublicWebhooksOtapayA2cRoute: typeof ApiPublicWebhooksOtapayA2cRoute
   ApiPublicWebhooksPaystackRoute: typeof ApiPublicWebhooksPaystackRoute
 }
 
@@ -299,6 +327,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicWebhooksPaystackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/webhooks/otapay-a2c': {
+      id: '/api/public/webhooks/otapay-a2c'
+      path: '/api/public/webhooks/otapay-a2c'
+      fullPath: '/api/public/webhooks/otapay-a2c'
+      preLoaderRoute: typeof ApiPublicWebhooksOtapayA2cRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/otapay-sync': {
+      id: '/api/public/hooks/otapay-sync'
+      path: '/api/public/hooks/otapay-sync'
+      fullPath: '/api/public/hooks/otapay-sync'
+      preLoaderRoute: typeof ApiPublicHooksOtapaySyncRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -336,6 +378,8 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiPublicHooksOtapaySyncRoute: ApiPublicHooksOtapaySyncRoute,
+  ApiPublicWebhooksOtapayA2cRoute: ApiPublicWebhooksOtapayA2cRoute,
   ApiPublicWebhooksPaystackRoute: ApiPublicWebhooksPaystackRoute,
 }
 export const routeTree = rootRouteImport

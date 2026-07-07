@@ -101,7 +101,7 @@ export const vendPurchase = createServerFn({ method: "POST" })
       // 5. Success — route profit
       const { error: doneErr } = await supabase.rpc("complete_vend", {
         _txn_id: txn_id,
-        _provider_ref: providerRef,
+        _provider_ref: providerRef ?? undefined,
       });
       if (doneErr) throw new Error(doneErr.message);
 
