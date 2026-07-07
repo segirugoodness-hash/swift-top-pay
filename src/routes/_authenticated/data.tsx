@@ -17,8 +17,8 @@ export const Route = createFileRoute("/_authenticated/data")({
   component: DataPage,
 });
 
-type DBPlan = { id: string; network: string; category: string; name: string; wholesale_price: number; validity: string | null; is_active: boolean };
-type RetailPlan = { id: string; name: string; validity: string | null; price: number };
+type DBPlan = { id: string; network: string; category: string; name: string; wholesale_price: number; validity: string | null; is_active: boolean; external_id?: string | null };
+type RetailPlan = { id: string; name: string; validity: string | null; price: number; wholesale: number; external_id: string | null };
 
 const CATEGORIES = [
   { key: "daily", label: "Daily" },
@@ -51,8 +51,9 @@ function DataPage() {
     const m = markups.find((x) => x.network === network);
     const grouped: Record<string, RetailPlan[]> = { daily: [], three_day: [], weekly: [], monthly: [] };
     for (const p of plans.filter((p) => p.network === network)) {
-      const price = applyMarkup(Number(p.wholesale_price), m);
-      grouped[p.category]?.push({ id: p.id, name: p.name, validity: p.validity, price });
+      const wholesale = Number(p.wholesale_price);
+      const price = applyMarkup(wholesale, m);
+      grouped[p.category]?.push({ id: p.id, name: p.name, validity: p.validity, price, wholesale, external_id: p.external_id ?? null });
     }
     return grouped;
   }, [plans, markups, network]);
@@ -67,7 +68,14 @@ function DataPage() {
   async function confirm(pin: string) {
     if (!plan) return;
     setBusy(true);
-    const ok = await spendWallet({ type: "data", amount: plan.price, pin, metadata: { network, phone, plan: plan.name } });
+    const ok = await spendWallet({
+      type: "data",
+      retail: plan.price,
+      wholesale: plan.wholesale,
+      pin,
+      metadata: { network, phone, plan: plan.name, plan_id: plan.id },
+      otapayPayload: { network, phone, plan_id: plan.external_id ?? plan.id },
+    });
     setBusy(false);
     if (!ok) return;
     setPinOpen(false);

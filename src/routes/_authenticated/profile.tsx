@@ -1,11 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { BottomNav } from "@/components/BottomNav";
+import { ChangePinDialog } from "@/components/ChangePinDialog";
 import { useProfile } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { LogOut, ShieldCheck, User as UserIcon, Phone, Mail, Wallet } from "lucide-react";
+import { LogOut, ShieldCheck, User as UserIcon, Phone, Mail, Wallet, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/profile")({
@@ -22,6 +24,7 @@ function ProfilePage() {
   const { data: profile, isLoading, error } = useProfile();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const [pinOpen, setPinOpen] = useState(false);
 
   const { data: authUser } = useQuery({
     queryKey: ["auth_user"],
@@ -76,16 +79,35 @@ function ProfilePage() {
               />
             </div>
 
+            <div className="mt-6">
+              <p className="mb-2 text-[11px] uppercase tracking-wide text-muted-foreground">Security settings</p>
+              <div className="rounded-2xl border border-border/70 bg-surface/70">
+                {profile?.transaction_pin_hash ? (
+                  <button
+                    onClick={() => setPinOpen(true)}
+                    className="flex w-full items-center gap-3 rounded-2xl px-4 py-4 text-left transition hover:bg-surface"
+                  >
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <KeyRound className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-foreground">Change transaction PIN</p>
+                      <p className="text-xs text-muted-foreground">Verify current PIN and set a new one</p>
+                    </div>
+                  </button>
+                ) : (
+                  <Button
+                    variant="secondary"
+                    className="h-11 w-full rounded-full"
+                    onClick={() => navigate({ to: "/create-pin" })}
+                  >
+                    Create transaction PIN
+                  </Button>
+                )}
+              </div>
+            </div>
+
             <div className="mt-4 space-y-2">
-              {!profile?.transaction_pin_hash && (
-                <Button
-                  variant="secondary"
-                  className="h-11 w-full rounded-full"
-                  onClick={() => navigate({ to: "/create-pin" })}
-                >
-                  Create transaction PIN
-                </Button>
-              )}
               <Button
                 variant="outline"
                 className="h-11 w-full rounded-full"
@@ -97,6 +119,7 @@ function ProfilePage() {
           </>
         )}
       </div>
+      <ChangePinDialog open={pinOpen} onOpenChange={setPinOpen} />
       <BottomNav />
     </div>
   );
