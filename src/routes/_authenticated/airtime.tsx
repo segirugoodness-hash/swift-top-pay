@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
+import { Sparkles } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { NETWORKS } from "@/lib/vtu-options";
 import { Input } from "@/components/ui/input";
@@ -9,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { PinDialog } from "@/components/PinDialog";
 import { spendWallet } from "@/lib/purchase";
 import { useQueryClient } from "@tanstack/react-query";
+import { airtimeQuote } from "@/lib/airtime-pricing";
 
 export const Route = createFileRoute("/_authenticated/airtime")({
   component: AirtimePage,
@@ -22,22 +24,31 @@ function AirtimePage() {
   const [busy, setBusy] = useState(false);
   const qc = useQueryClient();
 
+  const face = parseInt(amount, 10) || 0;
+  const quote = face > 0 ? airtimeQuote(network, face) : null;
+
   function submit(e: React.FormEvent) {
     e.preventDefault();
     if (phone.length !== 11) return toast.error("Enter a valid 11-digit phone number");
-    const amt = parseInt(amount, 10);
-    if (!amt || amt < 50) return toast.error("Minimum airtime is ₦50");
+    if (!face || face < 50) return toast.error("Minimum airtime is ₦50");
     setPinOpen(true);
   }
 
   async function confirm(pin: string) {
-    const amt = parseInt(amount, 10);
+    if (!quote) return;
     setBusy(true);
-    const ok = await spendWallet({ type: "airtime", amount: amt, pin, metadata: { network, phone } });
+    const ok = await spendWallet({
+      type: "airtime",
+      retail: quote.retail,
+      wholesale: quote.wholesale,
+      pin,
+      metadata: { network, phone, face_amount: face, cashback: quote.cashback },
+      otapayPayload: { network, phone, amount: face },
+    });
     setBusy(false);
     if (!ok) return;
     setPinOpen(false);
-    toast.success(`₦${amt} airtime sent to ${phone}`);
+    toast.success(`₦${face.toLocaleString()} airtime sent to ${phone}${quote.cashback ? ` · You saved ₦${quote.cashback}` : ""}`);
     qc.invalidateQueries({ queryKey: ["profile"] });
     qc.invalidateQueries({ queryKey: ["transactions", "recent"] });
     setAmount("");
@@ -45,7 +56,7 @@ function AirtimePage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <PageHeader title="Buy Airtime" subtitle="Instant top-up for all networks" />
+      <PageHeader title="Buy Airtime" subtitle="Instant top-up · instant cashback" />
       <form onSubmit={submit} className="flex flex-1 flex-col gap-5 px-4 py-6">
         <div>
           <Label className="mb-2 block text-sm">Select network</Label>
@@ -80,14 +91,28 @@ function AirtimePage() {
               </button>
             ))}
           </div>
+          {quote && quote.cashback > 0 && (
+            <div className="mt-3 rounded-2xl border border-primary/40 bg-gradient-to-br from-primary/15 to-primary/5 p-3">
+              <div className="mb-1 flex items-center gap-2 text-primary">
+                <Sparkles className="h-4 w-4" />
+                <span className="text-xs font-bold uppercase tracking-wide">Instant cashback</span>
+              </div>
+              <p className="text-sm font-semibold text-foreground">
+                Buy ₦{face.toLocaleString()} airtime for only ₦{quote.retail.toLocaleString()}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                You save ₦{quote.cashback.toLocaleString()} ({quote.userDiscountPct.toFixed(0)}% off) · credited automatically.
+              </p>
+            </div>
+          )}
         </div>
 
         <Button type="submit" className="mt-auto h-12 rounded-full text-base font-semibold">
-          {amount ? `Pay ₦${Number(amount).toLocaleString()}` : "Continue"}
+          {quote ? `Pay ₦${quote.retail.toLocaleString()}` : "Continue"}
         </Button>
       </form>
 
-      <PinDialog open={pinOpen} onOpenChange={setPinOpen} amount={parseInt(amount || "0", 10)} busy={busy} onConfirm={confirm} />
+      <PinDialog open={pinOpen} onOpenChange={setPinOpen} amount={quote?.retail ?? 0} busy={busy} onConfirm={confirm} />
     </div>
   );
 }

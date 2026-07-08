@@ -21,11 +21,14 @@ type DBPlan = { id: string; network: string; category: string; name: string; who
 type RetailPlan = { id: string; name: string; validity: string | null; price: number; wholesale: number; external_id: string | null };
 
 const CATEGORIES = [
+  { key: "sme", label: "SME 30-Day", badge: "VALUE" },
   { key: "daily", label: "Daily" },
   { key: "three_day", label: "3-Day" },
   { key: "weekly", label: "Weekly" },
   { key: "monthly", label: "Monthly" },
 ] as const;
+
+const SME_KEYWORDS = /(sme|corporate|gifting|30\s*day)/i;
 
 function DataPage() {
   const [network, setNetwork] = useState("mtn");
