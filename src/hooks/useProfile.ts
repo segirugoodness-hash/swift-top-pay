@@ -14,6 +14,11 @@ export type Profile = {
   dedicated_account_name: string | null;
   transaction_pin_hash: string | null;
   account_tier: "starter" | "verified";
+  verification_status?: "none" | "pending_verification" | "verified" | null;
+  verification_first_name?: string | null;
+  verification_last_name?: string | null;
+  verification_email?: string | null;
+  verification_submitted_at?: string | null;
 };
 
 export function useProfile() {
