@@ -52,11 +52,15 @@ function DataPage() {
 
   const priced = useMemo(() => {
     const m = markups.find((x) => x.network === network);
-    const grouped: Record<string, RetailPlan[]> = { daily: [], three_day: [], weekly: [], monthly: [] };
+    const grouped: Record<string, RetailPlan[]> = { sme: [], daily: [], three_day: [], weekly: [], monthly: [] };
     for (const p of plans.filter((p) => p.network === network)) {
       const wholesale = Number(p.wholesale_price);
       const price = applyMarkup(wholesale, m);
-      grouped[p.category]?.push({ id: p.id, name: p.name, validity: p.validity, price, wholesale, external_id: p.external_id ?? null });
+      const row = { id: p.id, name: p.name, validity: p.validity, price, wholesale, external_id: p.external_id ?? null };
+      grouped[p.category]?.push(row);
+      // SME/Corporate/30-day plans are also surfaced in the highlighted "Value" tab.
+      const is30Day = /30\s*day/i.test(p.validity ?? "") || p.category === "monthly";
+      if (is30Day && SME_KEYWORDS.test(p.name)) grouped.sme.push(row);
     }
     return grouped;
   }, [plans, markups, network]);
@@ -115,29 +119,50 @@ function DataPage() {
 
         <div>
           <Label className="mb-2 block text-sm">Choose a plan</Label>
-          <Tabs defaultValue="daily">
-            <TabsList className="grid w-full grid-cols-4">
-              {CATEGORIES.map((c) => <TabsTrigger key={c.key} value={c.key}>{c.label}</TabsTrigger>)}
+          <Tabs defaultValue="sme">
+            <TabsList className="grid w-full grid-cols-5">
+              {CATEGORIES.map((c) => (
+                <TabsTrigger key={c.key} value={c.key} className="text-[11px]">
+                  {c.label}
+                </TabsTrigger>
+              ))}
             </TabsList>
             {CATEGORIES.map((c) => (
               <TabsContent key={c.key} value={c.key} className="mt-3 space-y-2">
+                {c.key === "sme" && (
+                  <div className="rounded-xl border border-primary/40 bg-gradient-to-br from-primary/15 to-primary/5 p-3">
+                    <p className="text-xs font-bold text-primary">SME / 30-Day Value Plans</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      30× more validity than a 1-day plan from your bank app. Same MB. Way cheaper per GB.
+                    </p>
+                  </div>
+                )}
                 {priced[c.key].length === 0 && (
                   <p className="rounded-xl border border-dashed border-border bg-surface/50 p-4 text-center text-xs text-muted-foreground">
                     No plans available yet.
                   </p>
                 )}
-                {priced[c.key].map((p) => (
-                  <button key={p.id} type="button" onClick={() => setPlan(p)}
-                    className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition ${
-                      plan?.id === p.id ? "border-primary bg-primary/10" : "border-border bg-surface"
-                    }`}>
-                    <span>
-                      <span className="block text-sm font-medium text-foreground">{p.name}</span>
-                      {p.validity && <span className="block text-xs text-muted-foreground">{p.validity}</span>}
-                    </span>
-                    <span className="text-sm font-semibold text-primary">₦{p.price.toLocaleString()}</span>
-                  </button>
-                ))}
+                {priced[c.key].map((p) => {
+                  const is30 = /30\s*day/i.test(p.validity ?? "");
+                  return (
+                    <button key={p.id} type="button" onClick={() => setPlan(p)}
+                      className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition ${
+                        plan?.id === p.id ? "border-primary bg-primary/10" : "border-border bg-surface"
+                      }`}>
+                      <span>
+                        <span className="block text-sm font-medium text-foreground">{p.name}</span>
+                        {p.validity && (
+                          <span className={`mt-0.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                            is30 ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
+                          }`}>
+                            {p.validity} Validity
+                          </span>
+                        )}
+                      </span>
+                      <span className="text-sm font-semibold text-primary">₦{p.price.toLocaleString()}</span>
+                    </button>
+                  );
+                })}
               </TabsContent>
             ))}
           </Tabs>
