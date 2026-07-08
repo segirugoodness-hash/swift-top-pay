@@ -199,6 +199,11 @@ export type Database = {
           phone: string | null
           transaction_pin_hash: string | null
           updated_at: string
+          verification_email: string | null
+          verification_first_name: string | null
+          verification_last_name: string | null
+          verification_status: string
+          verification_submitted_at: string | null
           wallet_balance: number
         }
         Insert: {
@@ -214,6 +219,11 @@ export type Database = {
           phone?: string | null
           transaction_pin_hash?: string | null
           updated_at?: string
+          verification_email?: string | null
+          verification_first_name?: string | null
+          verification_last_name?: string | null
+          verification_status?: string
+          verification_submitted_at?: string | null
           wallet_balance?: number
         }
         Update: {
@@ -229,6 +239,11 @@ export type Database = {
           phone?: string | null
           transaction_pin_hash?: string | null
           updated_at?: string
+          verification_email?: string | null
+          verification_first_name?: string | null
+          verification_last_name?: string | null
+          verification_status?: string
+          verification_submitted_at?: string | null
           wallet_balance?: number
         }
         Relationships: []

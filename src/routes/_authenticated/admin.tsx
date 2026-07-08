@@ -168,7 +168,11 @@ function SyncPanel({ onSynced }: { onSynced: () => void }) {
     setBusy(true);
     try {
       const res = await sync();
-      toast.success(`Synced ${res.upserted} of ${res.total} plans from Otapay`);
+      if (res.maintenance) {
+        toast.message(res.message ?? "Otapay under brief maintenance. Local wholesale benchmarks loaded.");
+      } else {
+        toast.success(`Synced ${res.upserted} of ${res.total} plans from Otapay`);
+      }
       onSynced();
     } catch (e) {
       toast.error((e as Error).message);
