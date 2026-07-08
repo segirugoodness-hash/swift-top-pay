@@ -3,8 +3,8 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 type OtapayPlan = {
   external_id: string;
-  network: string; // mtn | glo | airtel | 9mobile
-  category: string; // daily | three_day | weekly | monthly
+  network: string;
+  category: string;
   name: string;
   wholesale_price: number;
   validity?: string | null;
@@ -24,24 +24,6 @@ function normalizeCategory(validity?: string | null, raw?: string): string {
   if (/(3\s*day|72\s*hour)/.test(v)) return "three_day";
   return "daily";
 }
-
-/** Fetches product list from Otapay and upserts into public.data_plans. Admin-only. */
-export const syncOtapayPlans = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { supabase, userId } = context;
-
-    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
-    if (!isAdmin) throw new Error("Forbidden");
-
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: settings, error: sErr } = await supabaseAdmin
-      .from("system_settings")
-      .select("value")
-      .eq("key", "otapay")
-      .maybeSingle();
-    if (sErr) throw sErr;
-    const cfg = (settings?.value ?? {}) as { public_key?: string; secret_key?: string; base_url?: string };
 
 const SEED_PLANS: Array<{ external_id: string; network: string; category: string; name: string; wholesale_price: number; validity: string }> = [
   { external_id: "seed_mtn_sme_1gb", network: "mtn", category: "monthly", name: "MTN SME 1GB", wholesale_price: 210, validity: "30 Days" },
@@ -63,14 +45,11 @@ async function seedLocalPlans() {
   return rows.length;
 }
 
-/** Fetches product list from Otapay and upserts into public.data_plans. Admin-only.
- *  On Otapay downtime we intercept the error, seed verified local benchmarks and return
- *  a friendly maintenance flag so the UI never crashes. */
+/** Fetches product list from Otapay; on downtime seeds verified local benchmarks. Admin-only. */
 export const syncOtapayPlans = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
-
     const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
     if (!isAdmin) throw new Error("Forbidden");
 
@@ -89,9 +68,9 @@ export const syncOtapayPlans = createServerFn({ method: "POST" })
     try {
       const res = await fetch(`${baseUrl}/v1/data/plans`, {
         headers: {
-          "Authorization": `Bearer ${cfg.secret_key}`,
+          Authorization: `Bearer ${cfg.secret_key}`,
           "X-Public-Key": cfg.public_key ?? "",
-          "Accept": "application/json",
+          Accept: "application/json",
         },
         signal: AbortSignal.timeout(12_000),
       });
@@ -111,8 +90,7 @@ export const syncOtapayPlans = createServerFn({ method: "POST" })
         if (!external_id) return null;
         const validity = (p.validity ?? p.duration ?? null) as string | null;
         return {
-          external_id,
-          network,
+          external_id, network,
           category: normalizeCategory(validity, String(p.category ?? "")),
           name: String(p.name ?? p.plan_name ?? p.size ?? external_id),
           wholesale_price: Number(p.price ?? p.wholesale_price ?? p.amount ?? 0),
@@ -127,21 +105,14 @@ export const syncOtapayPlans = createServerFn({ method: "POST" })
     }
 
     const rows = plans.map((p) => ({
-      external_id: p.external_id,
-      network: p.network,
-      category: p.category,
-      name: p.name,
-      wholesale_price: p.wholesale_price,
-      validity: p.validity ?? null,
-      is_active: true,
-      updated_at: new Date().toISOString(),
+      external_id: p.external_id, network: p.network, category: p.category, name: p.name,
+      wholesale_price: p.wholesale_price, validity: p.validity ?? null,
+      is_active: true, updated_at: new Date().toISOString(),
     }));
 
     const { error: upErr, count } = await supabaseAdmin
-      .from("data_plans")
-      .upsert(rows, { onConflict: "network,external_id", count: "exact" });
+      .from("data_plans").upsert(rows, { onConflict: "network,external_id", count: "exact" });
     if (upErr) throw upErr;
-
     return { total: rows.length, upserted: count ?? rows.length, maintenance: false };
   });
 
@@ -153,15 +124,10 @@ export const saveOtapayKeys = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
     if (!isAdmin) throw new Error("Forbidden");
-
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from("system_settings").upsert({
       key: "otapay",
-      value: {
-        public_key: data.public_key,
-        secret_key: data.secret_key,
-        base_url: data.base_url ?? "https://api.otapay.ng",
-      },
+      value: { public_key: data.public_key, secret_key: data.secret_key, base_url: data.base_url ?? "https://api.otapay.ng" },
       updated_at: new Date().toISOString(),
     });
     if (error) throw error;
@@ -175,13 +141,9 @@ export const getOtapayStatus = createServerFn({ method: "GET" })
     const { supabase, userId } = context;
     const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
     if (!isAdmin) throw new Error("Forbidden");
-
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data } = await supabaseAdmin
-      .from("system_settings")
-      .select("value, updated_at")
-      .eq("key", "otapay")
-      .maybeSingle();
+      .from("system_settings").select("value, updated_at").eq("key", "otapay").maybeSingle();
     const v = (data?.value ?? {}) as { public_key?: string; secret_key?: string; base_url?: string };
     return {
       configured: !!v.secret_key,
