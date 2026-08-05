@@ -181,6 +181,15 @@ function AuthPage() {
           <Button type="submit" disabled={loading} className="h-12 rounded-full text-base font-semibold">
             {loading ? "Signing in…" : "Sign in"}
           </Button>
+          <button
+            type="button"
+            onClick={handleOtpSignIn}
+            disabled={loading}
+            className="rounded-full border border-border py-3 text-sm font-semibold text-primary disabled:text-muted-foreground"
+          >
+            Sign in with a 6-digit email code
+          </button>
+
           <p className="mt-auto text-center text-sm text-muted-foreground">
             New to Swift Top?{" "}
             <button type="button" onClick={() => setMode("signup")} className="font-semibold text-primary">
@@ -248,9 +257,15 @@ function AuthPage() {
           <Button type="submit" disabled={loading || otp.length !== 6} className="h-12 rounded-full text-base font-semibold">
             {loading ? "Verifying…" : "Verify"}
           </Button>
-          <button type="button" onClick={resendOtp} className="text-center text-sm font-medium text-primary">
-            Resend code
+          <button
+            type="button"
+            onClick={resendOtp}
+            disabled={cooldown > 0 || loading}
+            className="text-center text-sm font-medium text-primary disabled:text-muted-foreground"
+          >
+            {cooldown > 0 ? `Resend code in ${cooldown}s` : "Resend code"}
           </button>
+
           <button type="button" onClick={() => setMode("login")} className="mt-auto text-center text-sm text-muted-foreground">
             Back to sign in
           </button>
