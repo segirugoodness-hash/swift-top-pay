@@ -9,6 +9,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Copy, ShieldCheck, Building2, CreditCard, Sparkles } from "lucide-react";
 import { initPaystackFunding, upgradeToVerified } from "@/lib/paystack.functions";
+import { TempTransferPanel } from "@/components/TempTransferPanel";
+
 
 /** Lazy loader for Paystack Inline script. */
 function loadPaystack(): Promise<{ setup: (opts: Record<string, unknown>) => { openIframe: () => void } }> {
@@ -26,8 +28,14 @@ function loadPaystack(): Promise<{ setup: (opts: Record<string, unknown>) => { o
 
 export function FundWalletDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const { data: profile } = useProfile();
-  const [tab, setTab] = useState<"starter" | "upgrade">("starter");
+  const [tab, setTab] = useState<"starter" | "transfer" | "upgrade">("starter");
   const verified = profile?.account_tier === "verified" && !!profile.dedicated_account_number;
+
+  const TABS = [
+    { key: "starter", label: "Pay now" },
+    { key: "transfer", label: "Bank transfer" },
+    { key: "upgrade", label: "Verify" },
+  ] as const;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -43,27 +51,25 @@ export function FundWalletDialog({ open, onOpenChange }: { open: boolean; onOpen
               </DialogDescription>
             </DialogHeader>
             <div className="mt-2 flex rounded-full border border-border bg-surface p-1 text-xs">
-              <button
-                onClick={() => setTab("starter")}
-                className={`flex-1 rounded-full py-2 font-semibold transition ${
-                  tab === "starter" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
-                }`}
-              >
-                Pay now
-              </button>
-              <button
-                onClick={() => setTab("upgrade")}
-                className={`flex-1 rounded-full py-2 font-semibold transition ${
-                  tab === "upgrade" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
-                }`}
-              >
-                Upgrade to Verified
-              </button>
+              {TABS.map((t) => (
+                <button
+                  key={t.key}
+                  onClick={() => setTab(t.key)}
+                  className={`flex-1 rounded-full py-2 font-semibold transition ${
+                    tab === t.key ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
             </div>
-            {tab === "starter" ? <PaystackFlow onClose={() => onOpenChange(false)} /> : <VerifiedUpgradeFlow />}
+            {tab === "starter" && <PaystackFlow onClose={() => onOpenChange(false)} />}
+            {tab === "transfer" && <TempTransferPanel onCredited={() => {}} />}
+            {tab === "upgrade" && <VerifiedUpgradeFlow />}
           </>
         )}
       </DialogContent>
+
     </Dialog>
   );
 }
