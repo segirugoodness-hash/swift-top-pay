@@ -12,6 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PinDialog } from "@/components/PinDialog";
 import { spendWallet } from "@/lib/purchase";
 import { applyMarkup, type MarkupRow } from "@/lib/pricing";
+import { LOCAL_PLAN_CACHE } from "@/lib/data-plans-cache";
+
 
 export const Route = createFileRoute("/_authenticated/data")({
   component: DataPage,
@@ -53,7 +55,12 @@ function DataPage() {
   const priced = useMemo(() => {
     const m = markups.find((x) => x.network === network);
     const grouped: Record<string, RetailPlan[]> = { sme: [], daily: [], three_day: [], weekly: [], monthly: [] };
-    for (const p of plans.filter((p) => p.network === network)) {
+    // Fall back to the local wholesale cache so pricing renders instantly even before a sync.
+    const source: DBPlan[] = plans.length
+      ? plans
+      : LOCAL_PLAN_CACHE.map((p) => ({ ...p, is_active: true, external_id: null }));
+    for (const p of source.filter((p) => p.network === network)) {
+
       const wholesale = Number(p.wholesale_price);
       const price = applyMarkup(wholesale, m);
       const row = { id: p.id, name: p.name, validity: p.validity, price, wholesale, external_id: p.external_id ?? null };
