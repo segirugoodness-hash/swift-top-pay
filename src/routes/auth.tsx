@@ -19,6 +19,7 @@ export const Route = createFileRoute("/auth")({
 });
 
 type Mode = "login" | "signup" | "verify" | "forgot" | "reset";
+type OtpPurpose = "signup" | "recover" | "signin";
 
 function AuthPage() {
   const navigate = useNavigate();
@@ -29,13 +30,20 @@ function AuthPage() {
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
-  const [otpPurpose, setOtpPurpose] = useState<"signup" | "email">("signup");
+  const [otpPurpose, setOtpPurpose] = useState<OtpPurpose>("signup");
+  const [cooldown, setCooldown] = useState(0);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) navigate({ to: "/" });
     });
   }, [navigate]);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -45,6 +53,19 @@ function AuthPage() {
     if (error) return toast.error(error.message);
     toast.success("Welcome back");
     navigate({ to: "/" });
+  }
+
+  /** Passwordless sign-in with a 6-digit email code. */
+  async function handleOtpSignIn() {
+    if (!/.+@.+\..+/.test(email)) return toast.error("Enter your email address first");
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+    setLoading(false);
+    if (error) return toast.error(error.message);
+    setOtpPurpose("signin");
+    setMode("verify");
+    setCooldown(60);
+    toast.success("We sent a 6-digit sign-in code to your email");
   }
 
   async function handleSignup(e: React.FormEvent) {
@@ -64,6 +85,7 @@ function AuthPage() {
     if (error) return toast.error(error.message);
     setOtpPurpose("signup");
     setMode("verify");
+    setCooldown(60);
     toast.success("We sent a 6-digit code to your email");
   }
 
@@ -74,13 +96,16 @@ function AuthPage() {
     const { error } = await supabase.auth.verifyOtp({
       email,
       token: otp,
-      type: otpPurpose,
+      type: otpPurpose === "signup" ? "signup" : "email",
     });
     setLoading(false);
     if (error) return toast.error(error.message);
-    if (otpPurpose === "email") {
-      // For password recovery: user is now signed in, go to reset step
+    if (otpPurpose === "recover") {
+      // Recovery: the user is now signed in, continue to the new-password step.
       setMode("reset");
+    } else if (otpPurpose === "signin") {
+      toast.success("Signed in");
+      navigate({ to: "/" });
     } else {
       toast.success("Account verified — set your transaction PIN");
       navigate({ to: "/create-pin" });
@@ -96,8 +121,9 @@ function AuthPage() {
     });
     setLoading(false);
     if (error) return toast.error(error.message);
-    setOtpPurpose("email");
+    setOtpPurpose("recover");
     setMode("verify");
+    setCooldown(60);
     toast.success("Reset code sent to your email");
   }
 
@@ -113,6 +139,7 @@ function AuthPage() {
   }
 
   async function resendOtp() {
+    if (cooldown > 0) return;
     setLoading(true);
     if (otpPurpose === "signup") {
       const { error } = await supabase.auth.resend({ type: "signup", email });
@@ -123,8 +150,10 @@ function AuthPage() {
       setLoading(false);
       if (error) return toast.error(error.message);
     }
+    setCooldown(60);
     toast.success("A fresh code was sent");
   }
+
 
   return (
     <div className="flex min-h-screen flex-col bg-background px-5 py-8">
