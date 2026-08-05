@@ -9,6 +9,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Copy, ShieldCheck, Building2, CreditCard, Sparkles } from "lucide-react";
 import { initPaystackFunding, upgradeToVerified } from "@/lib/paystack.functions";
+import { TempTransferPanel } from "@/components/TempTransferPanel";
+
 
 /** Lazy loader for Paystack Inline script. */
 function loadPaystack(): Promise<{ setup: (opts: Record<string, unknown>) => { openIframe: () => void } }> {
