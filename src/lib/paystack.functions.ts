@@ -58,13 +58,19 @@ export const getPaystackPublicKey = createServerFn({ method: "GET" })
 /** Initialize a Paystack transaction server-side; returns reference + access_code for inline popup. */
 export const initPaystackFunding = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { amount: number }) => input)
+  .inputValidator((input: { amount: number; email?: string }) => input)
   .handler(async ({ data, context }) => {
     const { userId, claims } = context;
-    // Always guarantee a valid email for Paystack; fall back to a synthetic one keyed by user id.
+    // Prefer the signed-in account email, then a client-supplied one, then a synthetic fallback.
+    const valid = (e?: string) => !!e && /.+@.+\..+/.test(e.trim());
     const rawEmail = (claims?.email ?? "").trim();
-    const email = /.+@.+\..+/.test(rawEmail) ? rawEmail : `customer+${userId.slice(0, 8)}@swift-top.com`;
+    const email = valid(rawEmail)
+      ? rawEmail
+      : valid(data.email)
+        ? data.email!.trim()
+        : `customer+${userId.slice(0, 8)}@swift-top.com`;
     if (!data.amount || data.amount < 100) throw new Error("Minimum funding is ₦100");
+
 
     const cfg = await loadPaystackConfig();
     if (!cfg.secret_key) throw new Error("Paystack is not configured yet — contact support");
@@ -107,8 +113,10 @@ export const initPaystackFunding = createServerFn({ method: "POST" })
       access_code: json.data.access_code,
       authorization_url: json.data.authorization_url,
       public_key: cfg.public_key ?? "",
+      email,
     };
   });
+
 
 /** Verified upgrade: validate BVN with Paystack Customer Validation API, then create a Dedicated Virtual Account. */
 export const upgradeToVerified = createServerFn({ method: "POST" })

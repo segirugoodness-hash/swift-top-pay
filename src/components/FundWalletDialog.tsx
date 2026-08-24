@@ -5,6 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useProfile } from "@/hooks/useProfile";
+import { supabase } from "@/integrations/supabase/client";
+
 import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Copy, ShieldCheck, Building2, CreditCard, Sparkles } from "lucide-react";
@@ -79,21 +81,52 @@ export function FundWalletDialog({ open, onOpenChange }: { open: boolean; onOpen
 function PaystackFlow({ onClose }: { onClose: () => void }) {
   const [amount, setAmount] = useState("");
   const [busy, setBusy] = useState(false);
+  const [email, setEmail] = useState("");
+  const [needEmail, setNeedEmail] = useState(false);
   const init = useServerFn(initPaystackFunding);
+  const { data: profile } = useProfile();
   const qc = useQueryClient();
+
+  const validEmail = (e: string) => /.+@.+\..+/.test(e.trim());
+
+  /** Resolves the email Paystack should charge; prompts inline when the account has none. */
+  async function resolveEmail(): Promise<string | null> {
+    if (validEmail(email)) return email.trim();
+    try {
+      const { data } = await supabase.auth.getUser();
+      const accountEmail = data.user?.email ?? "";
+      if (validEmail(accountEmail)) return accountEmail;
+    } catch {
+      // ignore — fall through to the saved/prompted address
+    }
+    const saved = profile?.verification_email ?? "";
+    if (validEmail(saved)) return saved;
+    setNeedEmail(true);
+    toast.message("Enter an email address for your payment receipt");
+    return null;
+  }
 
   async function pay(e: React.FormEvent) {
     e.preventDefault();
     const amt = parseInt(amount, 10);
     if (!amt || amt < 100) return toast.error("Enter at least ₦100");
+    const payerEmail = await resolveEmail();
+    if (!payerEmail) return;
     setBusy(true);
     try {
-      const { access_code, public_key, authorization_url } = await init({ data: { amount: amt } });
+      // Reuse this address next time so we never prompt twice.
+      if (needEmail && profile?.id) {
+        await supabase.from("profiles").update({ verification_email: payerEmail }).eq("id", profile.id);
+      }
+      const { access_code, public_key, authorization_url, email: chargedEmail } = await init({
+        data: { amount: amt, email: payerEmail },
+      });
       const Paystack = await loadPaystack().catch(() => null);
       if (Paystack && public_key) {
         const handler = Paystack.setup({
           key: public_key,
           access_code,
+          email: chargedEmail || payerEmail,
           onSuccess: () => {
             toast.success("Payment received — wallet crediting shortly");
             qc.invalidateQueries({ queryKey: ["profile"] });
@@ -111,6 +144,7 @@ function PaystackFlow({ onClose }: { onClose: () => void }) {
       setBusy(false);
     }
   }
+
 
   return (
     <form onSubmit={pay} className="mt-3 flex flex-col gap-4">
@@ -136,6 +170,23 @@ function PaystackFlow({ onClose }: { onClose: () => void }) {
           ))}
         </div>
       </div>
+      {needEmail && (
+        <div>
+          <Label htmlFor="payer-email" className="mb-2 block text-sm">Email for receipt</Label>
+          <Input
+            id="payer-email"
+            type="email"
+            inputMode="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Your account has no email on file — Paystack needs one to issue a receipt.
+          </p>
+        </div>
+      )}
+
       <Button type="submit" disabled={busy} className="h-11 rounded-full">
         <CreditCard className="mr-2 h-4 w-4" />
         {busy ? "Preparing…" : "Continue to Paystack"}
