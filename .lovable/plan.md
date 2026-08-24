@@ -1,61 +1,46 @@
+# Swift Top — Funding, Data Plans, Security & Referrals
 
-# Swift Top — Phase 1 Plan
+## 1. Paystack funding email fix
+The inline popup is currently opened with only the access code and public key, so Paystack falls back to its own email prompt and can reject the charge.
 
-A mobile-first fintech dashboard with a dark navy theme, teal/emerald accents, and six service sub-pages. Backend will use **Lovable Cloud** (managed Supabase) so no manual env vars are needed — the Supabase client, URL, and keys are wired automatically.
+- Read the signed-in user's email on the client and pass it into the popup config; the server already guarantees a valid email for the initialize call.
+- If the account has no email, show a small "Enter your email" step in the funding sheet before opening the popup, and save that address to the account so it is reused next time.
+- Keep every network call in try/catch with a toast on failure.
 
-## 1. Design system (`src/styles.css`)
+## 2. Multi-network data plans
+Verified: the catalogue already holds active plans for MTN, Airtel, Glo and 9mobile — the page is the problem. It opens on the "SME 30-Day" tab, and that tab is only filled when a plan's *name* matches SME/Corporate wording, which mostly happens for MTN. Airtel/Glo/9mobile therefore look empty. Some networks also have no 3-Day rows.
 
-- Dark navy background tokens (base, elevated card, subtle border)
-- Teal + emerald accent tokens for active wallet header, CTA highlights
-- Muted foreground for secondary text; success/warning/destructive semantic tokens
-- Rounded-2xl cards, soft glow shadow token for the wallet header
-- Fonts: Space Grotesk (headings) + Inter (body) via `<link>` in `__root.tsx`
-- Update `__root.tsx` head with real title/description: "Swift Top — Airtime, Data & Bills"
+- Filter plans per selected network and group by validity category from the data, not from name keywords.
+- Treat any 30-day/monthly plan as an SME/Value plan; keep the badge styling.
+- Auto-select the first tab that actually has plans for the selected network, so no network ever opens on an empty tab.
+- Tabs with no plans for the current network are hidden instead of showing an empty state.
+- Merge the local wholesale cache per network/category (instead of only when the whole catalogue is empty) so gaps like Glo/9mobile 3-Day still render, with live rows always winning.
 
-## 2. Routes (TanStack file-based, all mobile-first)
+## 3. Balance check before the PIN modal
+- On "Pay", compare the wallet balance against the plan price first; if short, show the "Insufficient balance" toast (with a Fund wallet shortcut) and never open the PIN sheet.
+- Apply the same pre-check on Airtime, Data, Cable, Electricity and Education.
 
-```
-src/routes/
-  index.tsx                 Dashboard (wallet header + 6 service cards)
-  airtime.tsx               Network picker + phone + amount
-  data.tsx                  Network + tabs (Daily / Weekly / Monthly)
-  electricity.tsx           Disco dropdown + meter number + amount
-  cable.tsx                 Provider (DSTV/GOTV/StarTimes) + smartcard + package
-  education.tsx             Exam (WAEC/NECO/JAMB) + quantity
-  airtime-to-cash.tsx       Sender number + network + amount + bank + account
-```
+## 4. Email OTP everywhere
+- Sign-in, forgot password and PIN changes already use 6-digit email codes with a 60s resend timer; audit the three flows for consistent wording, error handling and resend behaviour, and keep the mandatory OTP gate before any PIN overwrite.
 
-Each sub-page has a sticky top bar with a "← Back to Dashboard" `<Link to="/">` button, a title, and a form built with shadcn (Input, Select, Tabs, Button, RadioGroup). Forms validate with zod + react-hook-form and show a toast on submit (no real transaction yet in Phase 1).
+## 5. Biometrics + referrals
+Biometrics (WebAuthn platform authenticator, Fingerprint/Face ID):
+- Profile toggle "Unlock with biometrics"; registers a device credential and stores its handle locally on that device only (no secrets, no server credential store).
+- App lock: when enabled, protected views show a lock screen requiring the biometric prompt after the app is reopened or backgrounded.
+- Purchase approval: a "Use Face ID / Fingerprint" button appears in the PIN sheet. Because the server always verifies a PIN, enabling biometrics stores the PIN locally in the device's encrypted-at-rest storage, released only after a successful biometric assertion. Users who prefer not to store it can keep using the PIN.
 
-## 3. Dashboard composition (`index.tsx`)
+Referrals:
+- Profile section shows the user's referral link `/auth?ref=<user_id>` with copy/share and a count of successful referrals plus total earned.
+- New table `referrals` (referrer, referred user, status, reward amount) with owner-scoped read access; the signup flow records the ref code.
+- Backend rule: the referrer is credited **₦10 once**, the first time the referred user's wallet is funded. Paid automatically from the funding path, guarded so it can never pay twice, and logged as a `referral_bonus` transaction.
 
-- Header: greeting + placeholder phone `08012345678`, small avatar circle
-- Wallet balance card: gradient teal→emerald, big balance (₦0.00 placeholder), Fund / Withdraw pills
-- Quick actions grid (2 cols on mobile): 6 touch-friendly cards with icon + label routing to each service
-- Recent transactions section (empty state for Phase 1)
-- Bottom nav bar (Home / History / Profile) — Home active
-
-## 4. Shared components
-
-- `src/components/ServiceCard.tsx` — icon + label tile
-- `src/components/PageHeader.tsx` — back button + title used by all sub-pages
-- `src/components/WalletCard.tsx` — gradient balance card
-- `src/components/BottomNav.tsx` — fixed bottom nav
-- Network / Disco / Cable option data in `src/lib/vtu-options.ts`
-
-## 5. Backend preparation (Lovable Cloud)
-
-- Enable Lovable Cloud (managed Supabase). This auto-generates `src/integrations/supabase/client.ts` and wires `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` — no manual env setup needed.
-- No tables created in Phase 1 (per scope: "prepare configuration"). Client is imported and ready so Phase 2 can add `wallets`, `transactions`, `profiles` tables.
-- Note for the user: Lovable Cloud is Supabase under the hood; the standard `SUPABASE_URL` / `SUPABASE_ANON_KEY` are provisioned automatically and accessible to the app.
+## 6. Otapay / crash-proof routing
+- Confirm every vend (airtime, data, cable, electricity, education) goes through the server-side vend engine, never a direct call from the browser.
+- Any provider timeout or error surfaces as a clean toast and an automatic wallet refund; no frozen buttons.
 
 ## Technical notes
-
-- Icons: lucide-react (Phone, Wifi, Zap, Tv, GraduationCap, ArrowLeftRight)
-- All colors via semantic tokens — no hardcoded hex in components
-- Viewport: designed at 390×844; single column, 16px gutters, 44px min tap targets
-- No auth in Phase 1 (forms are visual + toast confirmation)
-
-## Out of scope (Phase 2+)
-
-- Real VTU provider integration, wallet funding, auth, transaction history persistence, KYC
+- Data page: rework grouping in `src/routes/_authenticated/data.tsx`, extend the category merge in `src/lib/data-plans-cache.ts`.
+- Funding: pass `email` into `PaystackPop.setup` in `FundWalletDialog.tsx`; add the email-capture step.
+- New `src/hooks/useBiometrics.ts` + `BiometricGate` component; PIN sheet gains a biometric action.
+- Migration: `referrals` table with grants and RLS, `referred_by` on `profiles`, and a security-definer credit function called from the funding credit path (Paystack webhook + settlement), idempotent per referred user.
+- Balance guard added in each service page before opening `PinDialog`.
