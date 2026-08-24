@@ -197,6 +197,7 @@ export type Database = {
           full_name: string | null
           id: string
           phone: string | null
+          referred_by: string | null
           transaction_pin_hash: string | null
           updated_at: string
           verification_email: string | null
@@ -217,6 +218,7 @@ export type Database = {
           full_name?: string | null
           id: string
           phone?: string | null
+          referred_by?: string | null
           transaction_pin_hash?: string | null
           updated_at?: string
           verification_email?: string | null
@@ -237,6 +239,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           phone?: string | null
+          referred_by?: string | null
           transaction_pin_hash?: string | null
           updated_at?: string
           verification_email?: string | null
@@ -245,6 +248,39 @@ export type Database = {
           verification_status?: string
           verification_submitted_at?: string | null
           wallet_balance?: number
+        }
+        Relationships: []
+      }
+      referrals: {
+        Row: {
+          created_at: string
+          id: string
+          referred_id: string
+          referrer_id: string
+          reward_amount: number
+          rewarded_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          referred_id: string
+          referrer_id: string
+          reward_amount?: number
+          rewarded_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          referred_id?: string
+          referrer_id?: string
+          reward_amount?: number
+          rewarded_at?: string | null
+          status?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -352,6 +388,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      attach_referrer: { Args: { _referrer: string }; Returns: undefined }
       begin_vend: {
         Args: {
           _metadata: Json
@@ -400,6 +437,10 @@ export type Database = {
         Returns: undefined
       }
       set_transaction_pin: { Args: { _pin: string }; Returns: undefined }
+      settle_referral_reward: {
+        Args: { _funded_user: string }
+        Returns: undefined
+      }
       try_acquire_service_lock: {
         Args: { _service_type: string }
         Returns: boolean
