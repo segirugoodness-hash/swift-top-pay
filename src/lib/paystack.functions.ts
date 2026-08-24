@@ -113,8 +113,10 @@ export const initPaystackFunding = createServerFn({ method: "POST" })
       access_code: json.data.access_code,
       authorization_url: json.data.authorization_url,
       public_key: cfg.public_key ?? "",
+      email,
     };
   });
+
 
 /** Verified upgrade: validate BVN with Paystack Customer Validation API, then create a Dedicated Virtual Account. */
 export const upgradeToVerified = createServerFn({ method: "POST" })
