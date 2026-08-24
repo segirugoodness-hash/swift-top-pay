@@ -79,21 +79,52 @@ export function FundWalletDialog({ open, onOpenChange }: { open: boolean; onOpen
 function PaystackFlow({ onClose }: { onClose: () => void }) {
   const [amount, setAmount] = useState("");
   const [busy, setBusy] = useState(false);
+  const [email, setEmail] = useState("");
+  const [needEmail, setNeedEmail] = useState(false);
   const init = useServerFn(initPaystackFunding);
+  const { data: profile } = useProfile();
   const qc = useQueryClient();
+
+  const validEmail = (e: string) => /.+@.+\..+/.test(e.trim());
+
+  /** Resolves the email Paystack should charge; prompts inline when the account has none. */
+  async function resolveEmail(): Promise<string | null> {
+    if (validEmail(email)) return email.trim();
+    try {
+      const { data } = await supabase.auth.getUser();
+      const accountEmail = data.user?.email ?? "";
+      if (validEmail(accountEmail)) return accountEmail;
+    } catch {
+      // ignore — fall through to the saved/prompted address
+    }
+    const saved = profile?.verification_email ?? "";
+    if (validEmail(saved)) return saved;
+    setNeedEmail(true);
+    toast.message("Enter an email address for your payment receipt");
+    return null;
+  }
 
   async function pay(e: React.FormEvent) {
     e.preventDefault();
     const amt = parseInt(amount, 10);
     if (!amt || amt < 100) return toast.error("Enter at least ₦100");
+    const payerEmail = await resolveEmail();
+    if (!payerEmail) return;
     setBusy(true);
     try {
-      const { access_code, public_key, authorization_url } = await init({ data: { amount: amt } });
+      // Reuse this address next time so we never prompt twice.
+      if (needEmail && profile?.id) {
+        await supabase.from("profiles").update({ verification_email: payerEmail }).eq("id", profile.id);
+      }
+      const { access_code, public_key, authorization_url, email: chargedEmail } = await init({
+        data: { amount: amt, email: payerEmail },
+      });
       const Paystack = await loadPaystack().catch(() => null);
       if (Paystack && public_key) {
         const handler = Paystack.setup({
           key: public_key,
           access_code,
+          email: chargedEmail || payerEmail,
           onSuccess: () => {
             toast.success("Payment received — wallet crediting shortly");
             qc.invalidateQueries({ queryKey: ["profile"] });
@@ -111,6 +142,7 @@ function PaystackFlow({ onClose }: { onClose: () => void }) {
       setBusy(false);
     }
   }
+
 
   return (
     <form onSubmit={pay} className="mt-3 flex flex-col gap-4">
