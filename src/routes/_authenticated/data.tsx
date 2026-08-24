@@ -30,7 +30,7 @@ const CATEGORIES = [
   { key: "monthly", label: "Monthly" },
 ] as const;
 
-const SME_KEYWORDS = /(sme|corporate|gifting|30\s*day)/i;
+type CatKey = (typeof CATEGORIES)[number]["key"];
 
 function DataPage() {
   const [network, setNetwork] = useState("mtn");
@@ -38,7 +38,9 @@ function DataPage() {
   const [plan, setPlan] = useState<RetailPlan | null>(null);
   const [pinOpen, setPinOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [tab, setTab] = useState<CatKey>("sme");
   const qc = useQueryClient();
+  const { data: profile } = useProfile();
 
   const { data: plans = [] } = useQuery({
     queryKey: ["data_plans"],
@@ -54,30 +56,51 @@ function DataPage() {
 
   const priced = useMemo(() => {
     const m = markups.find((x) => x.network === network);
-    const grouped: Record<string, RetailPlan[]> = { sme: [], daily: [], three_day: [], weekly: [], monthly: [] };
-    // Fall back to the local wholesale cache so pricing renders instantly even before a sync.
-    const source: DBPlan[] = plans.length
-      ? plans
-      : LOCAL_PLAN_CACHE.map((p) => ({ ...p, is_active: true, external_id: null }));
-    for (const p of source.filter((p) => p.network === network)) {
+    const grouped: Record<CatKey, RetailPlan[]> = { sme: [], daily: [], three_day: [], weekly: [], monthly: [] };
 
+    const live: DBPlan[] = plans.filter((p) => p.network === network);
+    const cached: DBPlan[] = LOCAL_PLAN_CACHE.filter((p) => p.network === network).map((p) => ({
+      ...p,
+      is_active: true,
+      external_id: null,
+    }));
+    // Live rows always win; the local cache only fills categories the catalogue has no rows for.
+    const liveCats = new Set(live.map((p) => p.category));
+    const source = [...live, ...cached.filter((p) => !liveCats.has(p.category))];
+
+    for (const p of source) {
       const wholesale = Number(p.wholesale_price);
       const price = applyMarkup(wholesale, m);
       const row = { id: p.id, name: p.name, validity: p.validity, price, wholesale, external_id: p.external_id ?? null };
-      grouped[p.category]?.push(row);
-      // SME/Corporate/30-day plans are also surfaced in the highlighted "Value" tab.
-      const is30Day = /30\s*day/i.test(p.validity ?? "") || p.category === "monthly";
-      if (is30Day && SME_KEYWORDS.test(p.name)) grouped.sme.push(row);
+      const cat = (p.category in grouped ? p.category : "monthly") as CatKey;
+      grouped[cat].push(row);
+      // Every 30-day / monthly bundle is a value plan, whatever the provider named it.
+      const is30Day = /30\s*day/i.test(p.validity ?? "") || cat === "monthly";
+      if (is30Day) grouped.sme.push(row);
     }
     return grouped;
   }, [plans, markups, network]);
+
+  // Never leave the user on a tab with nothing in it (e.g. networks without 3-Day bundles).
+  const visibleTabs = useMemo(() => CATEGORIES.filter((c) => priced[c.key].length > 0), [priced]);
+  useEffect(() => {
+    if (visibleTabs.length && !visibleTabs.some((c) => c.key === tab)) setTab(visibleTabs[0]!.key);
+  }, [visibleTabs, tab]);
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (phone.length !== 11) return toast.error("Enter a valid 11-digit phone number");
     if (!plan) return toast.error("Select a data plan");
+    // Balance pre-check: never ask for a PIN we already know the wallet can't cover.
+    const balance = Number(profile?.wallet_balance ?? 0);
+    if (balance < plan.price) {
+      return toast.error("Insufficient balance", {
+        description: `You need ₦${(plan.price - balance).toLocaleString()} more. Fund your wallet from the dashboard.`,
+      });
+    }
     setPinOpen(true);
   }
+
 
   async function confirm(pin: string) {
     if (!plan) return;
