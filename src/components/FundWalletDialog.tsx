@@ -168,6 +168,23 @@ function PaystackFlow({ onClose }: { onClose: () => void }) {
           ))}
         </div>
       </div>
+      {needEmail && (
+        <div>
+          <Label htmlFor="payer-email" className="mb-2 block text-sm">Email for receipt</Label>
+          <Input
+            id="payer-email"
+            type="email"
+            inputMode="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Your account has no email on file — Paystack needs one to issue a receipt.
+          </p>
+        </div>
+      )}
+
       <Button type="submit" disabled={busy} className="h-11 rounded-full">
         <CreditCard className="mr-2 h-4 w-4" />
         {busy ? "Preparing…" : "Continue to Paystack"}
