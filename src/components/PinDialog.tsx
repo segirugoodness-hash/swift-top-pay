@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck, Fingerprint } from "lucide-react";
+import { useBiometrics } from "@/hooks/useBiometrics";
+import { toast } from "sonner";
 
 type Props = {
   open: boolean;
@@ -16,9 +18,21 @@ type Props = {
 
 export function PinDialog({ open, onOpenChange, amount, title, description, busy, onConfirm }: Props) {
   const [pin, setPin] = useState("");
+  const { enabled, pinSaved, unlockPin } = useBiometrics();
+  const [bioBusy, setBioBusy] = useState(false);
+
   useEffect(() => {
     if (!open) setPin("");
   }, [open]);
+
+  async function payWithBiometrics() {
+    setBioBusy(true);
+    const saved = await unlockPin();
+    setBioBusy(false);
+    if (!saved) return toast.error("Biometric check failed — enter your PIN instead");
+    await onConfirm(saved);
+  }
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="rounded-t-3xl border-border bg-background pb-8 pt-6">
@@ -47,7 +61,19 @@ export function PinDialog({ open, onOpenChange, amount, title, description, busy
         >
           {busy ? "Processing…" : `Confirm ₦${amount.toLocaleString()}`}
         </Button>
+        {enabled && pinSaved && (
+          <Button
+            variant="outline"
+            disabled={busy || bioBusy}
+            onClick={payWithBiometrics}
+            className="mt-3 h-12 w-full rounded-full text-base font-semibold"
+          >
+            <Fingerprint className="mr-2 h-5 w-5" />
+            {bioBusy ? "Waiting…" : "Use Face ID / Fingerprint"}
+          </Button>
+        )}
       </SheetContent>
     </Sheet>
   );
 }
+
