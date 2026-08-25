@@ -107,6 +107,17 @@ function ProfilePage() {
               </div>
             </div>
 
+            <div className="mt-4">
+              <BiometricSettings hasPin={!!profile?.transaction_pin_hash} />
+            </div>
+
+            <div className="mt-6">
+              <p className="mb-2 text-[11px] uppercase tracking-wide text-muted-foreground">Referrals</p>
+              <ReferralPanel userId={profile?.id} />
+            </div>
+
+
+
             <div className="mt-4 space-y-2">
               <Button
                 variant="outline"
