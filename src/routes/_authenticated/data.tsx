@@ -13,6 +13,8 @@ import { PinDialog } from "@/components/PinDialog";
 import { spendWallet } from "@/lib/purchase";
 import { applyMarkup, type MarkupRow } from "@/lib/pricing";
 import { LOCAL_PLAN_CACHE } from "@/lib/data-plans-cache";
+import { useProfile } from "@/hooks/useProfile";
+
 
 
 export const Route = createFileRoute("/_authenticated/data")({
