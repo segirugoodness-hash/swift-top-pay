@@ -87,7 +87,10 @@ export const Route = createFileRoute("/api/public/webhooks/paystack")({
                 .update({ status: "completed" })
                 .eq("account_name", evt.data.reference);
             }
+            // First successful funding pays the referrer ₦10 (idempotent inside the DB routine).
+            await supabaseAdmin.rpc("settle_referral_reward", { _funded_user: userId });
           }
+
         }
 
         await supabaseAdmin.from("paystack_events").insert({
