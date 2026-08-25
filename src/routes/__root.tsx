@@ -130,7 +130,9 @@ function RootComponent() {
       <div className="mx-auto min-h-screen w-full max-w-[480px] bg-background text-foreground">
         <Outlet />
       </div>
+      <BiometricLock />
       <Toaster theme="dark" position="top-center" />
     </QueryClientProvider>
   );
 }
+
