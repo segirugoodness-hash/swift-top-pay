@@ -12,6 +12,7 @@ import {
 import { PinDialog } from "@/components/PinDialog";
 import { spendWallet } from "@/lib/purchase";
 import { useQueryClient } from "@tanstack/react-query";
+import { useBalanceGuard } from "@/hooks/useBalanceGuard";
 
 export const Route = createFileRoute("/_authenticated/cable")({
   component: CablePage,
@@ -29,6 +30,7 @@ function CablePage() {
   const [pinOpen, setPinOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const qc = useQueryClient();
+  const { ensureBalance } = useBalanceGuard();
   const provider = CABLE_PROVIDERS.find((p) => p.id === providerId)!;
   const amt = priceOf(pkg);
 
@@ -36,6 +38,7 @@ function CablePage() {
     e.preventDefault();
     if (smartcard.length < 10) return toast.error("Enter a valid smartcard number");
     if (!pkg) return toast.error("Select a package");
+    if (!ensureBalance(amt)) return;
     setPinOpen(true);
   }
 

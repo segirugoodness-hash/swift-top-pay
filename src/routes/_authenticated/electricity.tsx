@@ -13,6 +13,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { PinDialog } from "@/components/PinDialog";
 import { spendWallet } from "@/lib/purchase";
 import { useQueryClient } from "@tanstack/react-query";
+import { useBalanceGuard } from "@/hooks/useBalanceGuard";
 
 export const Route = createFileRoute("/_authenticated/electricity")({
   component: ElectricityPage,
@@ -29,6 +30,7 @@ function ElectricityPage() {
   const [pinOpen, setPinOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const qc = useQueryClient();
+  const { ensureBalance } = useBalanceGuard();
 
   const meterInvalid = meter.length > 0 && !METER_REGEX.test(meter);
 
@@ -38,6 +40,7 @@ function ElectricityPage() {
     if (!METER_REGEX.test(meter)) return toast.error("Meter number must be 10–13 digits");
     const amt = parseInt(amount, 10);
     if (!amt || amt < 500) return toast.error("Minimum amount is ₦500");
+    if (!ensureBalance(amt)) return;
     setPinOpen(true);
   }
 
