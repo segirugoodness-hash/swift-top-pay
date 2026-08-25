@@ -12,6 +12,8 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
+import { BiometricLock } from "@/components/BiometricLock";
+
 
 function NotFoundComponent() {
   return (
@@ -130,7 +132,9 @@ function RootComponent() {
       <div className="mx-auto min-h-screen w-full max-w-[480px] bg-background text-foreground">
         <Outlet />
       </div>
+      <BiometricLock />
       <Toaster theme="dark" position="top-center" />
     </QueryClientProvider>
   );
 }
+

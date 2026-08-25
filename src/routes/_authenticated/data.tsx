@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +13,8 @@ import { PinDialog } from "@/components/PinDialog";
 import { spendWallet } from "@/lib/purchase";
 import { applyMarkup, type MarkupRow } from "@/lib/pricing";
 import { LOCAL_PLAN_CACHE } from "@/lib/data-plans-cache";
+import { useProfile } from "@/hooks/useProfile";
+
 
 
 export const Route = createFileRoute("/_authenticated/data")({
@@ -149,15 +151,15 @@ function DataPage() {
 
         <div>
           <Label className="mb-2 block text-sm">Choose a plan</Label>
-          <Tabs defaultValue="sme">
-            <TabsList className="grid w-full grid-cols-5">
-              {CATEGORIES.map((c) => (
+          <Tabs value={tab} onValueChange={(v) => setTab(v as CatKey)}>
+            <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${Math.max(visibleTabs.length, 1)}, minmax(0, 1fr))` }}>
+              {visibleTabs.map((c) => (
                 <TabsTrigger key={c.key} value={c.key} className="text-[11px]">
                   {c.label}
                 </TabsTrigger>
               ))}
             </TabsList>
-            {CATEGORIES.map((c) => (
+            {visibleTabs.map((c) => (
               <TabsContent key={c.key} value={c.key} className="mt-3 space-y-2">
                 {c.key === "sme" && (
                   <div className="rounded-xl border border-primary/40 bg-gradient-to-br from-primary/15 to-primary/5 p-3">
@@ -167,11 +169,7 @@ function DataPage() {
                     </p>
                   </div>
                 )}
-                {priced[c.key].length === 0 && (
-                  <p className="rounded-xl border border-dashed border-border bg-surface/50 p-4 text-center text-xs text-muted-foreground">
-                    No plans available yet.
-                  </p>
-                )}
+
                 {priced[c.key].map((p) => {
                   const is30 = /30\s*day/i.test(p.validity ?? "");
                   return (

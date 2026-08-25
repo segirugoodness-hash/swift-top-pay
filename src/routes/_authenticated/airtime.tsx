@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { PinDialog } from "@/components/PinDialog";
 import { spendWallet } from "@/lib/purchase";
 import { useQueryClient } from "@tanstack/react-query";
+import { useBalanceGuard } from "@/hooks/useBalanceGuard";
 import { airtimeQuote } from "@/lib/airtime-pricing";
 
 export const Route = createFileRoute("/_authenticated/airtime")({
@@ -23,6 +24,7 @@ function AirtimePage() {
   const [pinOpen, setPinOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const qc = useQueryClient();
+  const { ensureBalance } = useBalanceGuard();
 
   const face = parseInt(amount, 10) || 0;
   const quote = face > 0 ? airtimeQuote(network, face) : null;
@@ -31,6 +33,7 @@ function AirtimePage() {
     e.preventDefault();
     if (phone.length !== 11) return toast.error("Enter a valid 11-digit phone number");
     if (!face || face < 50) return toast.error("Minimum airtime is ₦50");
+    if (!ensureBalance(quote?.retail ?? face)) return;
     setPinOpen(true);
   }
 
