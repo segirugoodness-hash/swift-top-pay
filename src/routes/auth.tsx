@@ -34,10 +34,28 @@ function AuthPage() {
   const [cooldown, setCooldown] = useState(0);
 
   useEffect(() => {
+    // Referral links look like /auth?ref=<user_id>; remember it until signup completes.
+    const ref = new URLSearchParams(window.location.search).get("ref");
+    if (ref) sessionStorage.setItem("st_ref", ref);
+  }, []);
+
+  useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) navigate({ to: "/" });
     });
   }, [navigate]);
+
+  /** Links the new account to whoever referred them (no-op when there is no ref). */
+  async function attachReferral() {
+    const ref = sessionStorage.getItem("st_ref");
+    if (!ref) return;
+    try {
+      await supabase.rpc("attach_referrer", { _referrer: ref });
+      sessionStorage.removeItem("st_ref");
+    } catch {
+      // referral tracking must never block sign-in
+    }
+  }
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -104,9 +122,11 @@ function AuthPage() {
       // Recovery: the user is now signed in, continue to the new-password step.
       setMode("reset");
     } else if (otpPurpose === "signin") {
+      await attachReferral();
       toast.success("Signed in");
       navigate({ to: "/" });
     } else {
+      await attachReferral();
       toast.success("Account verified — set your transaction PIN");
       navigate({ to: "/create-pin" });
     }
