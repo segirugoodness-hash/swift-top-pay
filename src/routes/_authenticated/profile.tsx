@@ -165,15 +165,31 @@ function BiometricSettings({ hasPin }: { hasPin: boolean }) {
   const [askPin, setAskPin] = useState(false);
   const [pin, setPin] = useState("");
   const [busy, setBusy] = useState(false);
+  const [needApp, setNeedApp] = useState(false);
 
   if (!supported) {
     return (
-      <div className="rounded-2xl border border-border/70 bg-surface/70 p-4">
-        <p className="text-sm font-semibold text-foreground">Biometric unlock</p>
-        <p className="mt-1 text-xs text-muted-foreground">
-          This device or browser does not offer Fingerprint / Face ID.
-        </p>
-      </div>
+      <>
+        <div className="rounded-2xl border border-border/70 bg-surface/70 p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <Fingerprint className="h-4 w-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-foreground">Unlock with biometrics</p>
+              <p className="text-xs text-muted-foreground">Available in the Swift Top mobile app</p>
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            className="mt-3 h-10 w-full rounded-full text-xs"
+            onClick={() => setNeedApp(true)}
+          >
+            Enable Fingerprint / Face ID
+          </Button>
+        </div>
+        <BiometricUnavailableDialog open={needApp} onOpenChange={setNeedApp} />
+      </>
     );
   }
 
@@ -186,7 +202,11 @@ function BiometricSettings({ hasPin }: { hasPin: boolean }) {
     setBusy(true);
     const ok = await enable();
     setBusy(false);
-    if (!ok) return toast.error("Could not register your biometrics");
+    if (!ok) {
+      // Unsupported, blocked, or a browser preview frame — guide to the app instead of erroring.
+      setNeedApp(true);
+      return;
+    }
     toast.success("Biometric unlock enabled");
   }
 
