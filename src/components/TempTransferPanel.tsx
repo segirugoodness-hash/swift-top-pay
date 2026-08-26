@@ -40,6 +40,7 @@ export function TempTransferPanel({ onCredited }: { onCredited: () => void }) {
   const [status, setStatus] = useState<"pending" | "success" | "failed">("pending");
   const create = useServerFn(createTempTransferAccount);
   const check = useServerFn(checkFundingStatus);
+  const initPaystack = useServerFn(initPaystackFunding);
   const qc = useQueryClient();
   const secondsLeft = useCountdown(session?.expires_at);
 
