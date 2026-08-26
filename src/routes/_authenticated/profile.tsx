@@ -4,6 +4,8 @@ import { PageHeader } from "@/components/PageHeader";
 import { BottomNav } from "@/components/BottomNav";
 import { ChangePinDialog } from "@/components/ChangePinDialog";
 import { ReferralPanel } from "@/components/ReferralPanel";
+import { AppDownloadBanner } from "@/components/AppDownloadBanner";
+import { BiometricUnavailableDialog } from "@/components/BiometricUnavailableDialog";
 import { useBiometrics } from "@/hooks/useBiometrics";
 import { Switch } from "@/components/ui/switch";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
