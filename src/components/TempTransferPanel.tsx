@@ -7,6 +7,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQueryClient } from "@tanstack/react-query";
 import { Building2, Copy, Clock, Loader2, CheckCircle2 } from "lucide-react";
 import { createTempTransferAccount, checkFundingStatus } from "@/lib/funding.functions";
+import { initPaystackFunding } from "@/lib/paystack.functions";
+import { openPaystackCheckout } from "@/lib/paystack-inline";
 
 type Session = {
   reference: string;
@@ -38,6 +40,7 @@ export function TempTransferPanel({ onCredited }: { onCredited: () => void }) {
   const [status, setStatus] = useState<"pending" | "success" | "failed">("pending");
   const create = useServerFn(createTempTransferAccount);
   const check = useServerFn(checkFundingStatus);
+  const initPaystack = useServerFn(initPaystackFunding);
   const qc = useQueryClient();
   const secondsLeft = useCountdown(session?.expires_at);
 
@@ -58,6 +61,23 @@ export function TempTransferPanel({ onCredited }: { onCredited: () => void }) {
     return () => clearInterval(id);
   }, [session, status, secondsLeft, check, qc, onCredited]);
 
+  /** Paystack dynamic transfer / card / USSD checkout — used when no dedicated account can be minted. */
+  async function payWithCheckout(amt: number) {
+    const r = await initPaystack({ data: { amount: amt } });
+    await openPaystackCheckout({
+      publicKey: r.public_key,
+      accessCode: r.access_code,
+      email: r.email,
+      authorizationUrl: r.authorization_url,
+      onSuccess: () => {
+        toast.success("Payment received — wallet crediting shortly");
+        qc.invalidateQueries({ queryKey: ["profile"] });
+        onCredited();
+      },
+      onCancel: () => toast.message("Payment cancelled"),
+    });
+  }
+
   async function start(e: React.FormEvent) {
     e.preventDefault();
     const amt = parseInt(amount, 10);
@@ -65,10 +85,21 @@ export function TempTransferPanel({ onCredited }: { onCredited: () => void }) {
     setBusy(true);
     try {
       const s = await create({ data: { amount: amt } });
+      if (!s.available) {
+        // No temporary account available on this tier — go straight to Paystack checkout
+        // instead of leaving the user staring at "Account being assigned".
+        toast.message("Opening secure Paystack transfer checkout");
+        await payWithCheckout(amt);
+        return;
+      }
       setSession(s);
       setStatus("pending");
     } catch (err) {
-      toast.error((err as Error).message);
+      try {
+        await payWithCheckout(amt);
+      } catch {
+        toast.error((err as Error).message);
+      }
     } finally {
       setBusy(false);
     }
