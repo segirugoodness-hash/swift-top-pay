@@ -57,6 +57,9 @@ function ProfilePage() {
           <p className="py-10 text-center text-sm text-destructive">Could not load profile</p>
         ) : (
           <>
+            <div className="mb-4">
+              <AppDownloadBanner />
+            </div>
             <div className="flex items-center gap-4 rounded-2xl border border-border/70 bg-surface/70 p-4">
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-[color:oklch(0.78_0.15_190)] to-[color:oklch(0.62_0.18_160)] font-display text-xl font-bold text-black">
                 {initials(profile?.full_name, authUser?.email)}
