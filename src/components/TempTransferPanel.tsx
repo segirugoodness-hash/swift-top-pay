@@ -7,6 +7,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQueryClient } from "@tanstack/react-query";
 import { Building2, Copy, Clock, Loader2, CheckCircle2 } from "lucide-react";
 import { createTempTransferAccount, checkFundingStatus } from "@/lib/funding.functions";
+import { initPaystackFunding } from "@/lib/paystack.functions";
+import { openPaystackCheckout } from "@/lib/paystack-inline";
 
 type Session = {
   reference: string;
