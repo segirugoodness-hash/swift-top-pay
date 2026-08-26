@@ -11,8 +11,8 @@ const CRED_KEY = "st_bio_cred";
 const PIN_KEY = "st_bio_pin";
 const UNLOCK_KEY = "st_bio_unlocked";
 
-function randomChallenge(): Uint8Array {
-  const b = new Uint8Array(32);
+function randomChallenge(): Uint8Array<ArrayBuffer> {
+  const b = new Uint8Array(new ArrayBuffer(32));
   crypto.getRandomValues(b);
   return b;
 }
@@ -21,8 +21,11 @@ function toB64(buf: ArrayBuffer): string {
   return btoa(String.fromCharCode(...new Uint8Array(buf)));
 }
 
-function fromB64(s: string): Uint8Array {
-  return Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+function fromB64(s: string): Uint8Array<ArrayBuffer> {
+  const raw = atob(s);
+  const out = new Uint8Array(new ArrayBuffer(raw.length));
+  for (let i = 0; i < raw.length; i += 1) out[i] = raw.charCodeAt(i);
+  return out;
 }
 
 export function useBiometrics() {
