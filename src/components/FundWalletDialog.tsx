@@ -239,10 +239,11 @@ function VerifiedUpgradeFlow() {
         <div className="rounded-2xl border border-primary/40 bg-gradient-to-br from-primary/15 to-primary/5 p-4">
           <div className="mb-2 flex items-center gap-2 text-primary">
             <ShieldCheck className="h-5 w-5" />
-            <p className="text-sm font-bold">Verification is being processed by Paystack</p>
+            <p className="text-sm font-bold">BVN submitted successfully</p>
           </div>
           <p className="text-xs text-muted-foreground">
-            Your dedicated virtual account number will be issued shortly. We'll notify you the moment it's ready.
+            BVN submitted successfully and stored securely. Your dedicated permanent bank account will be
+            issued upon approval.
           </p>
         </div>
         <div className="rounded-2xl border border-border bg-surface p-4">
