@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Zap } from "lucide-react";
+import { DIGITS_ONLY, otpErrorMessage } from "@/lib/otp-errors";
 
 export const Route = createFileRoute("/auth")({
   component: AuthPage,
@@ -79,7 +80,7 @@ function AuthPage() {
     setLoading(true);
     const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
     setLoading(false);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(otpErrorMessage(error));
     setOtpPurpose("signin");
     setMode("verify");
     setCooldown(60);
@@ -109,7 +110,7 @@ function AuthPage() {
 
   async function handleVerify(e: React.FormEvent) {
     e.preventDefault();
-    if (otp.length !== 6) return toast.error("Enter the 6-digit code");
+    if (!/^\d{6}$/.test(otp)) return toast.error("Enter the 6-digit code");
     setLoading(true);
     const { error } = await supabase.auth.verifyOtp({
       email,
@@ -117,7 +118,10 @@ function AuthPage() {
       type: otpPurpose === "signup" ? "signup" : "email",
     });
     setLoading(false);
-    if (error) return toast.error(error.message);
+    if (error) {
+      setOtp("");
+      return toast.error(otpErrorMessage(error));
+    }
     if (otpPurpose === "recover") {
       // Recovery: the user is now signed in, continue to the new-password step.
       setMode("reset");
@@ -140,7 +144,7 @@ function AuthPage() {
       options: { shouldCreateUser: false },
     });
     setLoading(false);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(otpErrorMessage(error));
     setOtpPurpose("recover");
     setMode("verify");
     setCooldown(60);
@@ -164,12 +168,13 @@ function AuthPage() {
     if (otpPurpose === "signup") {
       const { error } = await supabase.auth.resend({ type: "signup", email });
       setLoading(false);
-      if (error) return toast.error(error.message);
+      if (error) return toast.error(otpErrorMessage(error));
     } else {
       const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
       setLoading(false);
-      if (error) return toast.error(error.message);
+      if (error) return toast.error(otpErrorMessage(error));
     }
+    setOtp("");
     setCooldown(60);
     toast.success("A fresh code was sent");
   }
@@ -266,7 +271,7 @@ function AuthPage() {
             </p>
           </div>
           <div className="flex justify-center">
-            <InputOTP maxLength={6} value={otp} onChange={setOtp}>
+            <InputOTP maxLength={6} value={otp} onChange={setOtp} pattern={DIGITS_ONLY} inputMode="numeric" autoFocus>
               <InputOTPGroup>
                 {[0, 1, 2, 3, 4, 5].map((i) => (
                   <InputOTPSlot key={i} index={i} className="h-12 w-11 text-lg" />
