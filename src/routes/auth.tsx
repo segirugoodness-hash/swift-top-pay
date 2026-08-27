@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Zap } from "lucide-react";
+import { DIGITS_ONLY, otpErrorMessage } from "@/lib/otp-errors";
 
 export const Route = createFileRoute("/auth")({
   component: AuthPage,
