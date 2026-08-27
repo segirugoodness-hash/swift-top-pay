@@ -5,6 +5,7 @@ import { WalletCard } from "@/components/WalletCard";
 import { ServiceCard } from "@/components/ServiceCard";
 import { BottomNav } from "@/components/BottomNav";
 import { UpgradeBanner } from "@/components/UpgradeBanner";
+import { AppDownloadBanner } from "@/components/AppDownloadBanner";
 import { useProfile } from "@/hooks/useProfile";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
