@@ -110,7 +110,7 @@ function AuthPage() {
 
   async function handleVerify(e: React.FormEvent) {
     e.preventDefault();
-    if (otp.length !== 6) return toast.error("Enter the 6-digit code");
+    if (!/^\d{6}$/.test(otp)) return toast.error("Enter the 6-digit code");
     setLoading(true);
     const { error } = await supabase.auth.verifyOtp({
       email,
@@ -118,7 +118,10 @@ function AuthPage() {
       type: otpPurpose === "signup" ? "signup" : "email",
     });
     setLoading(false);
-    if (error) return toast.error(error.message);
+    if (error) {
+      setOtp("");
+      return toast.error(otpErrorMessage(error));
+    }
     if (otpPurpose === "recover") {
       // Recovery: the user is now signed in, continue to the new-password step.
       setMode("reset");
