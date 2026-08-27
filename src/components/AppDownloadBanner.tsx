@@ -26,9 +26,11 @@ export async function downloadApp() {
  * `dismissible` is used on the dashboard; the Profile copy always stays visible.
  */
 export function AppDownloadBanner({ dismissible = false }: { dismissible?: boolean }) {
-  const [hidden, setHidden] = useState(
-    () => dismissible && typeof window !== "undefined" && localStorage.getItem(DISMISS_KEY) === "1",
-  );
+  const [hidden, setHidden] = useState(false);
+
+  useEffect(() => {
+    if (dismissible && localStorage.getItem(DISMISS_KEY) === "1") setHidden(true);
+  }, [dismissible]);
 
   if (hidden) return null;
 
