@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Download, Smartphone, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
