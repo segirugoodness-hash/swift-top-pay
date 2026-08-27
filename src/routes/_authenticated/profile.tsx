@@ -220,6 +220,7 @@ function BiometricSettings({ hasPin }: { hasPin: boolean }) {
 
   return (
     <div className="rounded-2xl border border-border/70 bg-surface/70 p-4">
+      <BiometricUnavailableDialog open={needApp} onOpenChange={setNeedApp} />
       <div className="flex items-center gap-3">
         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
           <Fingerprint className="h-4 w-4" />
