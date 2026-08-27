@@ -80,7 +80,7 @@ function AuthPage() {
     setLoading(true);
     const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
     setLoading(false);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(otpErrorMessage(error));
     setOtpPurpose("signin");
     setMode("verify");
     setCooldown(60);
@@ -144,7 +144,7 @@ function AuthPage() {
       options: { shouldCreateUser: false },
     });
     setLoading(false);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(otpErrorMessage(error));
     setOtpPurpose("recover");
     setMode("verify");
     setCooldown(60);
@@ -168,12 +168,13 @@ function AuthPage() {
     if (otpPurpose === "signup") {
       const { error } = await supabase.auth.resend({ type: "signup", email });
       setLoading(false);
-      if (error) return toast.error(error.message);
+      if (error) return toast.error(otpErrorMessage(error));
     } else {
       const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
       setLoading(false);
-      if (error) return toast.error(error.message);
+      if (error) return toast.error(otpErrorMessage(error));
     }
+    setOtp("");
     setCooldown(60);
     toast.success("A fresh code was sent");
   }
