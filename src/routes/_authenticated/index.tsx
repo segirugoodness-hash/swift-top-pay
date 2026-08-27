@@ -102,6 +102,10 @@ function Dashboard() {
         </div>
       </header>
 
+      <div className="px-4 pb-1">
+        <AppDownloadBanner dismissible />
+      </div>
+
       <UpgradeBanner />
 
       <div className="px-4 pt-3">
