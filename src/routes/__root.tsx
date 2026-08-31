@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { BiometricLock } from "@/components/BiometricLock";
+import { BiometricSetupSheet } from "@/components/BiometricSetupSheet";
 
 
 function NotFoundComponent() {
@@ -141,6 +142,7 @@ function RootComponent() {
         <Outlet />
       </div>
       <BiometricLock />
+      <BiometricSetupSheet />
       <Toaster theme="dark" position="top-center" />
     </QueryClientProvider>
   );
