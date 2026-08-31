@@ -1,0 +1,17 @@
+{
+  "name": "Swift Top — Airtime, Data & Bills",
+  "short_name": "Swift Top",
+  "description": "Buy airtime and data, pay electricity, cable TV and education bills instantly.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#111a2e",
+  "theme_color": "#111a2e",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
