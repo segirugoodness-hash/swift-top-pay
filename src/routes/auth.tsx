@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Zap } from "lucide-react";
 import { DIGITS_ONLY, otpErrorMessage } from "@/lib/otp-errors";
+import { offerBiometricSetup } from "@/components/BiometricSetupSheet";
 
 export const Route = createFileRoute("/auth")({
   component: AuthPage,
@@ -70,6 +71,7 @@ function AuthPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) return toast.error(error.message);
+    offerBiometricSetup();
     toast.success("Welcome back");
     navigate({ to: "/" });
   }
@@ -127,10 +129,12 @@ function AuthPage() {
       setMode("reset");
     } else if (otpPurpose === "signin") {
       await attachReferral();
+      offerBiometricSetup();
       toast.success("Signed in");
       navigate({ to: "/" });
     } else {
       await attachReferral();
+      offerBiometricSetup();
       toast.success("Account verified — set your transaction PIN");
       navigate({ to: "/create-pin" });
     }
