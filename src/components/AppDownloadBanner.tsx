@@ -96,7 +96,7 @@ export function AppDownloadBanner({ dismissible = false }: { dismissible?: boole
         Add to Home Screen
       </Button>
       <IosInstallDialog open={showIos} onOpenChange={setShowIos} />
-      {isIOS ? null : null}
     </div>
+
   );
 }
