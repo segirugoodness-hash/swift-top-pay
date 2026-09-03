@@ -35,6 +35,42 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_profits: {
+        Row: {
+          charged: number
+          cost: number
+          created_at: string
+          id: string
+          margin: number
+          reference: string | null
+          service: string
+          transaction_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          charged?: number
+          cost?: number
+          created_at?: string
+          id?: string
+          margin?: number
+          reference?: string | null
+          service: string
+          transaction_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          charged?: number
+          cost?: number
+          created_at?: string
+          id?: string
+          margin?: number
+          reference?: string | null
+          service?: string
+          transaction_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       admin_settings: {
         Row: {
           id: string
@@ -388,6 +424,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_adjust_wallet: {
+        Args: { _amount: number; _reason: string; _user_id: string }
+        Returns: number
+      }
       attach_referrer: { Args: { _referrer: string }; Returns: undefined }
       begin_vend: {
         Args: {
@@ -432,6 +472,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_super_admin: { Args: never; Returns: boolean }
       release_service_lock: {
         Args: { _service_type: string }
         Returns: undefined
