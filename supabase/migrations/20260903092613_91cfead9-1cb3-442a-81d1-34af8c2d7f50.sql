@@ -1,0 +1,18 @@
+REVOKE EXECUTE ON FUNCTION public.admin_adjust_wallet(uuid, numeric, text) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.is_super_admin() FROM anon;
+REVOKE EXECUTE ON FUNCTION public.attach_referrer(uuid) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.begin_vend(text, numeric, numeric, text, text, jsonb) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.change_transaction_pin(text, text) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.complete_vend(uuid, text) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.credit_a2c_settlement(uuid, numeric, text, jsonb) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.debit_admin_earnings(numeric, text) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.fail_vend(uuid, text) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.has_role(uuid, app_role) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.release_service_lock(text) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.set_transaction_pin(text) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.settle_referral_reward(uuid) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.try_acquire_service_lock(text) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.verify_transaction_pin(text) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.complete_vend(uuid, text) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.credit_a2c_settlement(uuid, numeric, text, jsonb) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.settle_referral_reward(uuid) FROM authenticated;
