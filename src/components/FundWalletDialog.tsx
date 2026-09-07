@@ -216,14 +216,10 @@ function VerifiedUpgradeFlow() {
     if (!firstName.trim() || !lastName.trim()) return toast.error("Enter your legal first and last name");
     setBusy(true);
     try {
-      const r = await upgrade({ data: { bvn, first_name: firstName.trim(), last_name: lastName.trim() } });
+      await upgrade({ data: { bvn, first_name: firstName.trim(), last_name: lastName.trim() } });
       qc.invalidateQueries({ queryKey: ["profile"] });
-      if (r.status === "verified") {
-        toast.success("Verified — your dedicated bank account is ready");
-      } else {
-        setPending(true);
-        toast.success("Verification submitted — details safely saved");
-      }
+      setPending(true);
+      toast.success("BVN submitted successfully");
     } catch (err) {
       // Fallback safety net — should be rare because the server always intercepts.
       setPending(true);
