@@ -37,8 +37,13 @@ function AuthPage() {
 
   useEffect(() => {
     // Referral links look like /auth?ref=<user_id>; remember it until signup completes.
-    const ref = new URLSearchParams(window.location.search).get("ref");
-    if (ref) sessionStorage.setItem("st_ref", ref);
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("ref");
+    if (ref) {
+      sessionStorage.setItem("st_ref", ref);
+      localStorage.setItem("st_ref", ref);
+    }
+    if (params.get("mode") === "signup") setMode("signup");
   }, []);
 
   useEffect(() => {
@@ -49,11 +54,12 @@ function AuthPage() {
 
   /** Links the new account to whoever referred them (no-op when there is no ref). */
   async function attachReferral() {
-    const ref = sessionStorage.getItem("st_ref");
+    const ref = sessionStorage.getItem("st_ref") ?? localStorage.getItem("st_ref");
     if (!ref) return;
     try {
       await supabase.rpc("attach_referrer", { _referrer: ref });
       sessionStorage.removeItem("st_ref");
+      localStorage.removeItem("st_ref");
     } catch {
       // referral tracking must never block sign-in
     }

@@ -106,7 +106,10 @@ function SignupLanding() {
         <Button
           className="h-12 w-full rounded-full text-sm font-semibold"
           onClick={() =>
-            navigate({ to: "/auth", search: ref ? { mode: "signup", ref } : { mode: "signup" } })
+            navigate({
+              to: "/auth",
+              search: (ref ? { mode: "signup", ref } : { mode: "signup" }) as never,
+            })
           }
         >
           Create my free account <ArrowRight className="ml-2 h-4 w-4" />
