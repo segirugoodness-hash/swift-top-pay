@@ -129,89 +129,26 @@ export const upgradeToVerified = createServerFn({ method: "POST" })
     const rawEmail = (claims?.email ?? "").trim();
     const email = /.+@.+\..+/.test(rawEmail) ? rawEmail : `customer+${userId.slice(0, 8)}@swift-top.com`;
 
-    // Always persist the submitted details locally first so we never lose the user's input,
-    // even if Paystack rejects the automated DVA request (Starter Business restriction).
-    const persistPending = async (note: string) => {
-      await supabase.from("profiles").update({
+    // Dedicated virtual accounts are on hold: we store the BVN submission securely and an
+    // admin issues the account manually. No live Paystack DVA/identification calls are made.
+    const { error } = await supabase
+      .from("profiles")
+      .update({
         bvn: data.bvn,
         verification_first_name: data.first_name.trim(),
         verification_last_name: data.last_name.trim(),
         verification_email: email,
-        verification_status: "pending_verification",
+        verification_status: "pending",
         verification_submitted_at: new Date().toISOString(),
         full_name: `${data.first_name} ${data.last_name}`.trim(),
-      }).eq("id", userId);
-      return { status: "pending" as const, note };
+      })
+      .eq("id", userId);
+    if (error) throw new Error(error.message);
+
+    return {
+      status: "pending" as const,
+      note:
+        "Your BVN has been submitted successfully. Your personal virtual account is being processed and will be assigned to your dashboard shortly.",
     };
-
-    const cfg = await loadPaystackConfig();
-    if (!cfg.secret_key) {
-      return persistPending("Paystack not yet configured — verification queued for manual review.");
-    }
-
-    const auth = { Authorization: `Bearer ${cfg.secret_key}`, "Content-Type": "application/json" };
-
-    try {
-      // 1. Create Paystack customer (idempotent by email)
-      const custRes = await fetch("https://api.paystack.co/customer", {
-        method: "POST", headers: auth,
-        body: JSON.stringify({ email, first_name: data.first_name, last_name: data.last_name }),
-      });
-      const custJson = (await custRes.json()) as { status: boolean; message?: string; data?: { customer_code: string } };
-      if (!custRes.ok || !custJson.status || !custJson.data) {
-        return persistPending(custJson.message ?? "Paystack customer creation deferred.");
-      }
-      const customerCode = custJson.data.customer_code;
-
-      // 2. Validate customer with BVN — Starter Business tier is not allowed to run this live.
-      const valRes = await fetch(`https://api.paystack.co/customer/${customerCode}/identification`, {
-        method: "POST", headers: auth,
-        body: JSON.stringify({
-          country: "NG", type: "bank_account", bvn: data.bvn,
-          bank_code: "007", account_number: "0000000000",
-          first_name: data.first_name, last_name: data.last_name,
-        }),
-      });
-      if (!valRes.ok) {
-        return persistPending("BVN validation is pending Paystack corporate approval.");
-      }
-
-      // 3. Try to create dedicated virtual account (Wema)
-      const dvaRes = await fetch("https://api.paystack.co/dedicated_account", {
-        method: "POST", headers: auth,
-        body: JSON.stringify({ customer: customerCode, preferred_bank: "wema-bank" }),
-      });
-      const dvaJson = (await dvaRes.json()) as {
-        status: boolean; message?: string;
-        data?: { account_number: string; bank: { name: string }; account_name: string };
-      };
-      if (!dvaRes.ok || !dvaJson.status || !dvaJson.data) {
-        return persistPending(dvaJson.message ?? "Dedicated account issuance queued.");
-      }
-
-      const { error } = await supabase.from("profiles").update({
-        bvn: data.bvn,
-        bvn_verified: true,
-        account_tier: "verified",
-        verification_status: "verified",
-        verification_first_name: data.first_name.trim(),
-        verification_last_name: data.last_name.trim(),
-        verification_email: email,
-        dedicated_account_number: dvaJson.data.account_number,
-        dedicated_account_bank: dvaJson.data.bank.name,
-        dedicated_account_name: dvaJson.data.account_name,
-        full_name: `${data.first_name} ${data.last_name}`.trim(),
-      }).eq("id", userId);
-      if (error) throw error;
-
-      return {
-        status: "verified" as const,
-        account_number: dvaJson.data.account_number,
-        bank_name: dvaJson.data.bank.name,
-        account_name: dvaJson.data.account_name,
-      };
-    } catch {
-      // Network / Cloudflare / Paystack downtime — never surface a raw error.
-      return persistPending("Verification service temporarily unavailable — your details are safely queued.");
-    }
   });
+
