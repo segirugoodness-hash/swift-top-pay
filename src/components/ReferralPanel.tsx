@@ -22,7 +22,7 @@ export function ReferralPanel({ userId }: { userId: string | undefined }) {
     staleTime: 30_000,
   });
 
-  const link = userId && typeof window !== "undefined" ? `${window.location.origin}/auth?ref=${userId}` : "";
+  const link = userId && typeof window !== "undefined" ? `${window.location.origin}/signup?ref=${userId}` : "";
   const rewarded = rows.filter((r) => r.status === "rewarded");
   const earned = rewarded.reduce((s, r) => s + Number(r.reward_amount ?? 0), 0);
 

@@ -37,8 +37,8 @@ export function BiometricUnavailableDialog({
             </div>
             <DialogTitle className="font-display">Biometric login needs the app</DialogTitle>
             <DialogDescription>
-              Biometric login requires the installed Swift Top app. Add Swift Top to your home screen, then
-              open it from your app icon to set up Fingerprint / Face ID.
+              Please tap &ldquo;Add to Home Screen&rdquo; to install Swift Top and enable Biometric Login. Then open
+              Swift Top from your new app icon to set up Fingerprint / Face ID.
             </DialogDescription>
           </DialogHeader>
           <Button

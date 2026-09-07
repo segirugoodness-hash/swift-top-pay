@@ -161,13 +161,13 @@ function Row({ icon: Icon, label, value }: { icon: React.ComponentType<{ classNa
 
 /** Device-local Fingerprint / Face ID settings: app lock plus optional PIN-free approvals. */
 function BiometricSettings({ hasPin }: { hasPin: boolean }) {
-  const { supported, enabled, pinSaved, enable, disable, rememberPin } = useBiometrics();
+  const { canEnroll, enabled, pinSaved, enable, disable, rememberPin } = useBiometrics();
   const [askPin, setAskPin] = useState(false);
   const [pin, setPin] = useState("");
   const [busy, setBusy] = useState(false);
   const [needApp, setNeedApp] = useState(false);
 
-  if (!supported) {
+  if (!canEnroll && !enabled) {
     return (
       <>
         <div className="rounded-2xl border border-border/70 bg-surface/70 p-4">

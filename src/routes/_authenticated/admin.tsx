@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { NETWORKS } from "@/lib/vtu-options";
-import { Trash2, RefreshCw, KeyRound, CheckCircle2, Wallet, ArrowUpRight } from "lucide-react";
+import { Trash2, RefreshCw, KeyRound, CheckCircle2, Wallet, ArrowUpRight, Users, Search, TrendingUp, ShieldCheck } from "lucide-react";
+import { listUsers, adminAdjustWallet, getProfitSummary, type AdminUserRow } from "@/lib/admin.functions";
 import { saveOtapayKeys, syncOtapayPlans, getOtapayStatus } from "@/lib/otapay.functions";
 import { savePaystackKeys, getPaystackStatus } from "@/lib/paystack.functions";
 import { getAdminEarnings } from "@/lib/vend.functions";
@@ -56,15 +57,21 @@ function AdminPage() {
 
   return (
     <div className="flex min-h-screen flex-col pb-16">
-      <PageHeader title="Admin Console" subtitle="Otapay sync · markup engine" />
+      <PageHeader title="Super Admin Console" subtitle="Users · profits · Otapay sync · markups" />
       <div className="px-4 py-4 space-y-4">
         <EarningsPanel />
-        <Tabs defaultValue="markups">
-          <TabsList className="grid w-full grid-cols-3">
+        <ProfitPanel />
+        <Tabs defaultValue="users">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="markups">Markups</TabsTrigger>
-            <TabsTrigger value="plans">Data Plans</TabsTrigger>
-            <TabsTrigger value="api">API Settings</TabsTrigger>
+            <TabsTrigger value="plans">Plans</TabsTrigger>
+            <TabsTrigger value="api">API</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="users" className="mt-4 space-y-3">
+            <UsersPanel />
+          </TabsContent>
 
           <TabsContent value="markups" className="mt-4 space-y-3">
             <p className="rounded-xl border border-border/50 bg-surface/50 p-3 text-xs text-muted-foreground">
@@ -352,6 +359,215 @@ function PaystackPanel() {
           Used for wallet funding (Inline checkout), BVN validation, and dedicated virtual accounts.
           Webhook URL: <span className="font-mono text-foreground">/api/public/webhooks/paystack</span>
         </p>
+      </div>
+    </div>
+  );
+}
+
+
+/* ---------------- Profit ledger ---------------- */
+
+function ProfitPanel() {
+  const summaryFn = useServerFn(getProfitSummary);
+  const { data } = useQuery({ queryKey: ["admin_profits"], queryFn: () => summaryFn() });
+  const money = (n: number) => `₦${Number(n).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+
+  return (
+    <div className="rounded-2xl border border-border bg-surface p-4">
+      <div className="mb-3 flex items-center gap-2">
+        <TrendingUp className="h-4 w-4 text-primary" />
+        <p className="text-sm font-semibold text-foreground">Profit ledger</p>
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        <Stat label="Today" value={money(data?.today ?? 0)} />
+        <Stat label="This month" value={money(data?.month ?? 0)} />
+        <Stat label="Lifetime" value={money(data?.lifetime ?? 0)} />
+      </div>
+
+      {(data?.byService.length ?? 0) > 0 && (
+        <div className="mt-3 space-y-1.5">
+          {data!.byService.map((s) => (
+            <div key={s.service} className="flex items-center justify-between text-xs">
+              <span className="capitalize text-muted-foreground">
+                {s.service.replace(/_/g, " ")} · {s.count}
+              </span>
+              <span className="font-semibold text-primary">{money(s.margin)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {(data?.recent.length ?? 0) > 0 && (
+        <div className="mt-3 border-t border-border/60 pt-3">
+          <p className="mb-2 text-[11px] uppercase tracking-wide text-muted-foreground">Latest entries</p>
+          <div className="space-y-1.5">
+            {data!.recent.map((r) => (
+              <div key={r.id} className="flex items-center justify-between text-xs">
+                <span className="truncate text-muted-foreground">
+                  {new Date(r.created_at).toLocaleString()} · <span className="capitalize">{r.service.replace(/_/g, " ")}</span>
+                </span>
+                <span className="ml-2 shrink-0 font-medium text-foreground">
+                  {money(r.charged)} − {money(r.cost)} = <span className="text-primary">{money(r.margin)}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {data && data.recent.length === 0 && (
+        <p className="mt-3 text-xs text-muted-foreground">
+          No sales logged yet — margins appear here the moment a purchase completes.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-border bg-background px-3 py-2">
+      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="text-sm font-semibold text-foreground">{value}</p>
+    </div>
+  );
+}
+
+/* ---------------- User management ---------------- */
+
+function UsersPanel() {
+  const list = useServerFn(listUsers);
+  const [search, setSearch] = useState("");
+  const [term, setTerm] = useState("");
+  const [pendingOnly, setPendingOnly] = useState(false);
+  const [selected, setSelected] = useState<AdminUserRow | null>(null);
+
+  const { data: users = [], isFetching, refetch } = useQuery({
+    queryKey: ["admin_users", term, pendingOnly],
+    queryFn: () => list({ data: { search: term, pendingOnly } }),
+  });
+
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") setTerm(search); }}
+            placeholder="Name, phone or email"
+            className="pl-9"
+          />
+        </div>
+        <Button onClick={() => setTerm(search)} disabled={isFetching}>Search</Button>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setPendingOnly((v) => !v)}
+        className={`flex w-full items-center gap-2 rounded-xl border p-3 text-xs ${
+          pendingOnly ? "border-primary/50 bg-primary/10 text-primary" : "border-border bg-surface text-muted-foreground"
+        }`}
+      >
+        <ShieldCheck className="h-3.5 w-3.5" />
+        {pendingOnly ? "Showing BVN submissions awaiting a virtual account" : "Show only pending BVN verifications"}
+      </button>
+
+      {users.length === 0 && (
+        <p className="rounded-xl border border-dashed border-border bg-surface/50 p-6 text-center text-xs text-muted-foreground">
+          {isFetching ? "Loading users…" : "No users match that search."}
+        </p>
+      )}
+
+      {users.map((u) => (
+        <div key={u.id} className="rounded-2xl border border-border bg-surface p-3">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-foreground">{u.full_name ?? "Unnamed user"}</p>
+              <p className="truncate text-xs text-muted-foreground">{u.phone ?? "—"} · {u.email ?? "—"}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                <span className="font-semibold text-primary">
+                  ₦{u.wallet_balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </span>
+                {" · "}{u.account_tier}
+                {u.bvn_submitted && !u.dedicated_account_number ? " · BVN pending" : ""}
+                {u.dedicated_account_number ? ` · ${u.dedicated_account_number}` : ""}
+              </p>
+            </div>
+            <Button size="sm" variant="outline" onClick={() => setSelected(u)}>
+              <Users className="mr-1.5 h-3.5 w-3.5" /> Wallet
+            </Button>
+          </div>
+        </div>
+      ))}
+
+      <AdjustWalletDialog user={selected} onClose={() => setSelected(null)} onDone={() => { setSelected(null); refetch(); }} />
+    </div>
+  );
+}
+
+function AdjustWalletDialog({
+  user,
+  onClose,
+  onDone,
+}: {
+  user: AdminUserRow | null;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const adjust = useServerFn(adminAdjustWallet);
+  const [amount, setAmount] = useState("");
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function run(direction: 1 | -1) {
+    const amt = Number(amount);
+    if (!amt || amt <= 0) return toast.error("Enter an amount");
+    if (reason.trim().length < 3) return toast.error("Add a short reason");
+    setBusy(true);
+    try {
+      const r = await adjust({ data: { userId: user!.id, amount: amt * direction, reason: reason.trim() } });
+      toast.success(`Wallet updated — new balance ₦${r.balance.toLocaleString()}`);
+      setAmount(""); setReason("");
+      onDone();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!user) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4" onClick={onClose}>
+      <div className="w-full max-w-sm rounded-2xl border border-border bg-background p-4" onClick={(e) => e.stopPropagation()}>
+        <p className="text-sm font-semibold text-foreground">Adjust wallet</p>
+        <p className="mb-3 text-xs text-muted-foreground">
+          {user.full_name ?? user.phone ?? user.id.slice(0, 8)} · current ₦{user.wallet_balance.toLocaleString()}
+        </p>
+        <div className="space-y-3">
+          <div>
+            <Label htmlFor="adj-amt" className="mb-1 block text-xs">Amount (₦)</Label>
+            <Input id="adj-amt" inputMode="numeric" value={amount}
+              onChange={(e) => setAmount(e.target.value.replace(/[^\d.]/g, ""))} placeholder="5000" />
+          </div>
+          <div>
+            <Label htmlFor="adj-reason" className="mb-1 block text-xs">Reason (recorded in history)</Label>
+            <Input id="adj-reason" value={reason} onChange={(e) => setReason(e.target.value)}
+              placeholder="Manual bank transfer received" />
+          </div>
+          <div className="flex gap-2">
+            <Button className="flex-1" disabled={busy} onClick={() => { run(1).catch(() => undefined); }}>
+              Credit
+            </Button>
+            <Button className="flex-1" variant="outline" disabled={busy} onClick={() => { run(-1).catch(() => undefined); }}>
+              Debit
+            </Button>
+          </div>
+          <button type="button" onClick={onClose} className="w-full py-1 text-xs text-muted-foreground">Close</button>
+        </div>
       </div>
     </div>
   );
