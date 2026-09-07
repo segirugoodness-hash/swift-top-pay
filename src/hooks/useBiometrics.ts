@@ -28,8 +28,18 @@ function fromB64(s: string): Uint8Array<ArrayBuffer> {
   return out;
 }
 
+/** True only when running as the installed app (home-screen / standalone window). */
+function detectStandalone(): boolean {
+  if (typeof window === "undefined") return false;
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    (navigator as unknown as { standalone?: boolean }).standalone === true
+  );
+}
+
 export function useBiometrics() {
   const [supported, setSupported] = useState(false);
+  const [installed, setInstalled] = useState(false);
   const [enabled, setEnabled] = useState(false);
   const [pinSaved, setPinSaved] = useState(false);
 
@@ -46,6 +56,7 @@ export function useBiometrics() {
         if (alive) setSupported(false);
       }
       if (alive) {
+        setInstalled(detectStandalone());
         setEnabled(!!localStorage.getItem(CRED_KEY));
         setPinSaved(!!localStorage.getItem(PIN_KEY));
       }
@@ -132,7 +143,19 @@ export function useBiometrics() {
     }
   }, []);
 
-  return { supported, enabled, pinSaved, enable, disable, verify, unlockPin, rememberPin };
+  return {
+    supported,
+    installed,
+    /** Enrolment is only offered inside the installed app, per the biometric guard. */
+    canEnroll: supported && installed,
+    enabled,
+    pinSaved,
+    enable,
+    disable,
+    verify,
+    unlockPin,
+    rememberPin,
+  };
 }
 
 export const BIO_KEYS = { CRED_KEY, PIN_KEY, UNLOCK_KEY };

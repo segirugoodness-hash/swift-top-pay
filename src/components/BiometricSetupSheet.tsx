@@ -24,7 +24,7 @@ export function offerBiometricSetup() {
  * Never blocks navigation: it renders on top of the dashboard and is skippable.
  */
 export function BiometricSetupSheet() {
-  const { supported, enabled, enable } = useBiometrics();
+  const { canEnroll, enabled, enable } = useBiometrics();
   const [open, setOpen] = useState(false);
   const [needApp, setNeedApp] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -43,7 +43,7 @@ export function BiometricSetupSheet() {
   }
 
   async function handleEnable() {
-    if (!supported) {
+    if (!canEnroll) {
       close();
       setNeedApp(true);
       return;
