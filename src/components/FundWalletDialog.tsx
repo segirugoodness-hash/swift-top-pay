@@ -36,7 +36,7 @@ export function FundWalletDialog({ open, onOpenChange }: { open: boolean; onOpen
   const TABS = [
     { key: "starter", label: "Pay now" },
     { key: "transfer", label: "Bank transfer" },
-    { key: "upgrade", label: "Verify" },
+    { key: "upgrade", label: "Dedicated account" },
   ] as const;
 
   return (
@@ -242,8 +242,8 @@ function VerifiedUpgradeFlow() {
             <p className="text-sm font-bold">BVN submitted successfully</p>
           </div>
           <p className="text-xs text-muted-foreground">
-            BVN submitted successfully and stored securely. Your dedicated permanent bank account will be
-            issued upon approval.
+Your BVN has been submitted successfully. Your personal virtual account is being processed and will be
+            assigned to your dashboard shortly.
           </p>
         </div>
         <div className="rounded-2xl border border-border bg-surface p-4">
@@ -285,8 +285,12 @@ function VerifiedUpgradeFlow() {
         Dial *565*0# on your registered SIM to retrieve your BVN. It is encrypted and only used to verify identity.
       </p>
       <Button type="submit" disabled={busy} className="h-11 rounded-full">
-        {busy ? "Verifying…" : "Verify & issue account"}
+        {busy ? "Submitting…" : "Submit BVN for verification"}
       </Button>
+      <p className="text-[11px] text-muted-foreground">
+        Dedicated accounts are issued after review. Meanwhile use <span className="font-semibold text-foreground">Pay now</span>{" "}
+        to fund instantly by card, USSD or transfer.
+      </p>
     </form>
   );
 }
