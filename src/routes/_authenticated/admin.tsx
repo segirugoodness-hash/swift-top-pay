@@ -356,7 +356,7 @@ function PaystackPanel() {
           {busy ? "Saving…" : "Save Paystack Keys"}
         </Button>
         <p className="text-[11px] text-muted-foreground">
-          Used for wallet funding (Inline checkout), BVN validation, and dedicated virtual accounts.
+          Used for Starter wallet funding by bank transfer or card. Dedicated accounts remain under manual review.
           Webhook URL: <span className="font-mono text-foreground">/api/public/webhooks/paystack</span>
         </p>
       </div>
