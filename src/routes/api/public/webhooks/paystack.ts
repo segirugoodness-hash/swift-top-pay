@@ -1,5 +1,25 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { z } from "zod";
+
+const paystackEventSchema = z.object({
+  event: z.string(),
+  data: z.object({
+    id: z.number().optional(),
+    reference: z.string().min(1).optional(),
+  }),
+});
+
+const verifiedPaymentSchema = z.object({
+  status: z.literal(true),
+  data: z.object({
+    id: z.number(),
+    reference: z.string().min(1),
+    amount: z.number().positive(),
+    status: z.literal("success"),
+    metadata: z.object({ user_id: z.string().uuid(), purpose: z.literal("wallet_funding") }),
+  }),
+});
 
 export const Route = createFileRoute("/api/public/webhooks/paystack")({
   server: {
@@ -26,81 +46,48 @@ export const Route = createFileRoute("/api/public/webhooks/paystack")({
           return new Response("Invalid signature", { status: 401 });
         }
 
-        const evt = JSON.parse(raw) as {
-          event: string;
-          data: {
-            id?: number;
-            reference?: string;
-            amount?: number;
-            status?: string;
-            metadata?: { user_id?: string };
-            customer?: { email?: string };
-          };
-        };
+        let eventJson: unknown;
+        try {
+          eventJson = JSON.parse(raw);
+        } catch {
+          return new Response("Invalid payload", { status: 400 });
+        }
+        const parsedEvent = paystackEventSchema.safeParse(eventJson);
+        if (!parsedEvent.success) return new Response("Invalid payload", { status: 400 });
+        const evt = parsedEvent.data;
+        if (evt.event !== "charge.success") return new Response("ok", { status: 200 });
+        const reference = evt.data.reference;
+        if (!reference) return new Response("Missing reference", { status: 400 });
 
-        const eventId = String(evt.data?.id ?? evt.data?.reference ?? `${evt.event}:${Date.now()}`);
-
-        // Idempotency guard
-        const { data: existing } = await supabaseAdmin
-          .from("paystack_events")
-          .select("id")
-          .eq("event_id", eventId)
-          .maybeSingle();
-        if (existing) return new Response("ok", { status: 200 });
-
-        const isCredit =
-          (evt.event === "charge.success" || evt.event === "dedicatedaccount.credit") &&
-          (evt.data?.status ?? "success") === "success" &&
-          typeof evt.data?.amount === "number";
-
-        if (isCredit) {
-          const naira = (evt.data!.amount ?? 0) / 100;
-          let userId = evt.data?.metadata?.user_id ?? null;
-          if (!userId && evt.data?.customer?.email) {
-            const { data: u } = await supabaseAdmin
-              .from("profiles")
-              .select("id")
-              .eq("id", (await supabaseAdmin.auth.admin.listUsers()).data.users.find(
-                (x) => x.email === evt.data!.customer!.email,
-              )?.id ?? "")
-              .maybeSingle();
-            userId = u?.id ?? null;
-          }
-          if (userId && naira > 0) {
-            const { data: prof } = await supabaseAdmin
-              .from("profiles")
-              .select("wallet_balance")
-              .eq("id", userId)
-              .maybeSingle();
-            const newBal = Number(prof?.wallet_balance ?? 0) + naira;
-            await supabaseAdmin.from("profiles").update({ wallet_balance: newBal }).eq("id", userId);
-            await supabaseAdmin.from("transactions").insert({
-              user_id: userId,
-              type: "wallet_funding",
-              amount: naira,
-              status: "success",
-              metadata: { source: "paystack", event: evt.event, reference: evt.data?.reference },
-            });
-            if (evt.data?.reference) {
-              await supabaseAdmin
-                .from("funding_requests")
-                .update({ status: "completed" })
-                .eq("account_name", evt.data.reference);
-            }
-            // First successful funding pays the referrer ₦10 (idempotent inside the DB routine).
-            await supabaseAdmin.rpc("settle_referral_reward", { _funded_user: userId });
-          }
-
+        // Never trust payment status, amount or user metadata from the webhook body alone.
+        const verificationResponse = await fetch(
+          `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
+          { headers: { Authorization: `Bearer ${cfg.secret_key}` } },
+        );
+        const verificationJson: unknown = await verificationResponse.json().catch(() => null);
+        const verified = verifiedPaymentSchema.safeParse(verificationJson);
+        if (!verificationResponse.ok || !verified.success || verified.data.data.reference !== reference) {
+          console.error("Paystack webhook verification failed", { reference });
+          return new Response("Unable to verify payment", { status: 502 });
         }
 
-        await supabaseAdmin.from("paystack_events").insert({
-          event_id: eventId,
-          event_type: evt.event,
-          reference: evt.data?.reference ?? null,
-          user_id: evt.data?.metadata?.user_id ?? null,
-          amount: evt.data?.amount ? evt.data.amount / 100 : null,
-          raw: evt as never,
+        const payment = verified.data.data;
+        const eventId = String(evt.data.id ?? payment.id);
+        const amountNaira = payment.amount / 100;
+        const { error: settlementError } = await supabaseAdmin.rpc("settle_paystack_funding", {
+          _event_id: eventId,
+          _reference: payment.reference,
+          _user_id: payment.metadata.user_id,
+          _amount: amountNaira,
+          _raw: eventJson as never,
         });
+        if (settlementError) {
+          console.error("Paystack funding settlement failed", {
+            reference,
+            message: settlementError.message,
+          });
+          return new Response("Unable to settle payment", { status: 500 });
+        }
 
         return new Response("ok", { status: 200 });
       },
