@@ -11,22 +11,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Copy, ShieldCheck, Building2, CreditCard, Sparkles } from "lucide-react";
 import { initPaystackFunding, upgradeToVerified } from "@/lib/paystack.functions";
+import { openPaystackCheckout } from "@/lib/paystack-inline";
 import { TempTransferPanel } from "@/components/TempTransferPanel";
-
-
-/** Lazy loader for Paystack Inline script. */
-function loadPaystack(): Promise<{ setup: (opts: Record<string, unknown>) => { openIframe: () => void } }> {
-  return new Promise((resolve, reject) => {
-    const w = window as unknown as { PaystackPop?: unknown };
-    if (w.PaystackPop) return resolve(w.PaystackPop as never);
-    const s = document.createElement("script");
-    s.src = "https://js.paystack.co/v1/inline.js";
-    s.async = true;
-    s.onload = () => resolve((window as unknown as { PaystackPop: never }).PaystackPop);
-    s.onerror = () => reject(new Error("Failed to load Paystack"));
-    document.body.appendChild(s);
-  });
-}
 
 export function FundWalletDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const { data: profile } = useProfile();
@@ -43,7 +29,7 @@ export function FundWalletDialog({ open, onOpenChange }: { open: boolean; onOpen
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm rounded-2xl">
         {verified ? (
-          <DedicatedAccountView profile={profile!} />
+          <DedicatedAccountView profile={profile} />
         ) : (
           <>
             <DialogHeader>
@@ -121,23 +107,18 @@ function PaystackFlow({ onClose }: { onClose: () => void }) {
       const { access_code, public_key, authorization_url, email: chargedEmail } = await init({
         data: { amount: amt, email: payerEmail },
       });
-      const Paystack = await loadPaystack().catch(() => null);
-      if (Paystack && public_key) {
-        const handler = Paystack.setup({
-          key: public_key,
-          access_code,
-          email: chargedEmail || payerEmail,
-          onSuccess: () => {
-            toast.success("Payment received — wallet crediting shortly");
-            qc.invalidateQueries({ queryKey: ["profile"] });
-            onClose();
-          },
-          onCancel: () => toast.message("Payment cancelled"),
-        });
-        handler.openIframe();
-      } else {
-        window.location.href = authorization_url;
-      }
+      await openPaystackCheckout({
+        publicKey: public_key,
+        accessCode: access_code,
+        email: chargedEmail || payerEmail,
+        authorizationUrl: authorization_url,
+        onSuccess: () => {
+          toast.success("Payment received — wallet crediting shortly");
+          qc.invalidateQueries({ queryKey: ["profile"] });
+          onClose();
+        },
+        onCancel: () => toast.message("Payment cancelled"),
+      });
     } catch (err) {
       toast.error((err as Error).message);
     } finally {

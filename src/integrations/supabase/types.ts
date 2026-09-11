@@ -478,6 +478,16 @@ export type Database = {
         Returns: undefined
       }
       set_transaction_pin: { Args: { _pin: string }; Returns: undefined }
+      settle_paystack_funding: {
+        Args: {
+          _amount: number
+          _event_id: string
+          _raw: Json
+          _reference: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
       settle_referral_reward: {
         Args: { _funded_user: string }
         Returns: undefined

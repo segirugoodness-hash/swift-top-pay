@@ -67,51 +67,64 @@ export const initPaystackFunding = createServerFn({ method: "POST" })
     const email = valid(rawEmail)
       ? rawEmail
       : valid(data.email)
-        ? data.email!.trim()
+        ? data.email?.trim() ?? ""
         : `customer+${userId.slice(0, 8)}@swift-top.com`;
-    if (!data.amount || data.amount < 100) throw new Error("Minimum funding is ₦100");
-
+    if (!Number.isFinite(data.amount) || data.amount < 100 || data.amount > 5_000_000) {
+      throw new Error("Enter an amount between ₦100 and ₦5,000,000");
+    }
 
     const cfg = await loadPaystackConfig();
     if (!cfg.secret_key) throw new Error("Paystack is not configured yet — contact support");
 
     const reference = `st_${userId.slice(0, 8)}_${Date.now()}`;
-    const res = await fetch("https://api.paystack.co/transaction/initialize", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${cfg.secret_key}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email,
-        amount: Math.round(data.amount * 100), // kobo
-        reference,
-        metadata: { user_id: userId, purpose: "wallet_funding" },
-      }),
-    });
-    const json = (await res.json()) as {
-      status: boolean;
+    let json: {
+      status?: boolean;
       message?: string;
-      data?: { access_code: string; reference: string; authorization_url: string };
+      data?: { access_code?: string; reference?: string; authorization_url?: string };
     };
-    if (!res.ok || !json.status || !json.data) {
-      throw new Error(json.message ?? "Paystack init failed");
+    try {
+      const res = await fetch("https://api.paystack.co/transaction/initialize", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${cfg.secret_key}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          amount: Math.round(data.amount * 100),
+          channels: ["bank_transfer", "card"],
+          reference,
+          metadata: { user_id: userId, purpose: "wallet_funding" },
+        }),
+      });
+      json = (await res.json()) as typeof json;
+      if (!res.ok || !json.status) throw new Error(json.message ?? "Paystack initialization failed");
+    } catch (error) {
+      console.error("Paystack funding initialization failed", error);
+      throw new Error("Payment service is temporarily unavailable. Please try again.");
     }
+    const checkout = json.data;
+    if (!checkout?.access_code || !checkout.reference || !checkout.authorization_url) {
+      throw new Error("Paystack returned an incomplete checkout. Please try again.");
+    }
+
     // Log a pending funding_request so admins can audit.
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await supabaseAdmin.from("funding_requests").insert({
+    const { error: requestError } = await supabaseAdmin.from("funding_requests").insert({
       user_id: userId,
       amount: data.amount,
       account_number: "PAYSTACK",
       bank_name: "Paystack",
-      account_name: reference,
+      account_name: checkout.reference,
       status: "pending",
       expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
     });
+    if (requestError) throw new Error("Could not prepare this wallet funding request");
+
     return {
-      reference: json.data.reference,
-      access_code: json.data.access_code,
-      authorization_url: json.data.authorization_url,
+      reference: checkout.reference,
+      access_code: checkout.access_code,
+      authorization_url: checkout.authorization_url,
       public_key: cfg.public_key ?? "",
       email,
     };
