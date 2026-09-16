@@ -89,7 +89,7 @@ function AirtimePage() {
           <div className="mt-2 flex flex-wrap gap-2">
             {["100", "200", "500", "1000", "2000"].map((v) => (
               <button key={v} type="button" onClick={() => setAmount(v)}
-                className="rounded-full border border-border bg-surface px-3 py-1 text-xs text-muted-foreground hover:border-primary hover:text-primary">
+                className="flex min-h-12 items-center rounded-full border border-border bg-surface px-4 text-xs text-muted-foreground hover:border-primary hover:text-primary">
                 ₦{v}
               </button>
             ))}
