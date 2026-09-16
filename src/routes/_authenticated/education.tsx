@@ -40,7 +40,13 @@ function EducationPage() {
   async function confirm(pin: string) {
     const n = parseInt(qty || "0", 10);
     setBusy(true);
-    const ok = await spendWallet({ type: "education_pin", amount: total, pin, metadata: { exam, quantity: n } });
+    const ok = await spendWallet({
+      type: "education",
+      amount: total,
+      pin,
+      metadata: { exam, quantity: n },
+      otapayPayload: { exam, quantity: n, amount: total },
+    });
     setBusy(false);
     if (!ok) return;
     setPinOpen(false);

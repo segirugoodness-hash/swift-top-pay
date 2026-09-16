@@ -9,6 +9,8 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { Zap } from "lucide-react";
 import { DIGITS_ONLY, otpErrorMessage } from "@/lib/otp-errors";
 import { offerBiometricSetup } from "@/components/BiometricSetupSheet";
+import { Fingerprint } from "lucide-react";
+import { passkeysSupported, signInWithPasskey } from "@/lib/passkeys";
 
 export const Route = createFileRoute("/auth")({
   component: AuthPage,
@@ -93,6 +95,29 @@ function AuthPage() {
     setMode("verify");
     setCooldown(60);
     toast.success("We sent a 6-digit sign-in code to your email");
+  }
+
+  /** Returning users: fingerprint / Face ID instead of a password or a code. */
+  async function handlePasskeySignIn() {
+    if (!passkeysSupported()) {
+      return toast.error("This device doesn't support Fingerprint / Face ID sign-in");
+    }
+    setLoading(true);
+    try {
+      await signInWithPasskey();
+      await attachReferral();
+      toast.success("Signed in");
+      navigate({ to: "/" });
+    } catch (e) {
+      const msg = (e as Error).message || "";
+      toast.error(
+        /not set up|couldn't find/i.test(msg)
+          ? "This device isn't set up yet — sign in once, then enable Fingerprint / Face ID."
+          : msg || "Fingerprint sign-in was cancelled",
+      );
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleSignup(e: React.FormEvent) {
@@ -224,6 +249,16 @@ function AuthPage() {
           >
             Sign in with a 6-digit email code
           </button>
+          <button
+            type="button"
+            onClick={() => { handlePasskeySignIn().catch(() => undefined); }}
+            disabled={loading}
+            className="flex min-h-12 items-center justify-center gap-2 rounded-full bg-primary/15 py-3 text-sm font-semibold text-primary disabled:opacity-60"
+          >
+            <Fingerprint className="h-4 w-4" />
+            Login with Biometrics
+          </button>
+
 
           <p className="mt-auto text-center text-sm text-muted-foreground">
             New to Swift Top?{" "}

@@ -47,7 +47,13 @@ function ElectricityPage() {
   async function confirm(pin: string) {
     const amt = parseInt(amount, 10);
     setBusy(true);
-    const ok = await spendWallet({ type: "electricity", amount: amt, pin, metadata: { disco, meter, meterType } });
+    const ok = await spendWallet({
+      type: "electricity",
+      amount: amt,
+      pin,
+      metadata: { disco, meter, meterType },
+      otapayPayload: { disco, meter_number: meter, meter_type: meterType, amount: amt },
+    });
     setBusy(false);
     if (!ok) return;
     setPinOpen(false);

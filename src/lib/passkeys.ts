@@ -24,15 +24,15 @@ export function passkeysSupported(): boolean {
 
 /** Enrols this device for fingerprint / Face ID sign-in. Requires an active session. */
 export async function registerPasskey(): Promise<void> {
-  const { challengeId, options } = await startPasskeyRegistration();
-  const response = await startRegistration({ optionsJSON: options as never });
+  const { challengeId, optionsJson } = await startPasskeyRegistration();
+  const response = await startRegistration({ optionsJSON: JSON.parse(optionsJson) });
   await finishPasskeyRegistration({ data: { challengeId, label: deviceLabel(), response } });
 }
 
 /** Signs in with the device fingerprint / Face ID and establishes the Supabase session. */
 export async function signInWithPasskey(): Promise<void> {
-  const { challengeId, options } = await startPasskeyLogin();
-  const response = await startAuthentication({ optionsJSON: options as never });
+  const { challengeId, optionsJson } = await startPasskeyLogin();
+  const response = await startAuthentication({ optionsJSON: JSON.parse(optionsJson) });
   const { tokenHash } = await finishPasskeyLogin({
     data: { challengeId, response: response as never },
   });
