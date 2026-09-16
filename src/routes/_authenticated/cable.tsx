@@ -44,7 +44,13 @@ function CablePage() {
 
   async function confirm(pin: string) {
     setBusy(true);
-    const ok = await spendWallet({ type: "cable", amount: amt, pin, metadata: { provider: provider.name, smartcard, package: pkg } });
+    const ok = await spendWallet({
+      type: "cable",
+      amount: amt,
+      pin,
+      metadata: { provider: provider.name, smartcard, package: pkg },
+      otapayPayload: { provider: provider.id, smartcard, package: pkg, amount: amt },
+    });
     setBusy(false);
     if (!ok) return;
     setPinOpen(false);
