@@ -65,8 +65,8 @@ export const startPasskeyRegistration = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
 
-    // Plain JSON keeps the RPC payload serializable across the server boundary.
-    return { challengeId: row.id, options: JSON.parse(JSON.stringify(options)) as Record<string, unknown> };
+    // A JSON string keeps the RPC payload plainly serializable across the server boundary.
+    return { challengeId: row.id, optionsJson: JSON.stringify(options) };
   });
 
 /** Step 2 of enrolment — verifies the device response and saves the public key. */
@@ -145,7 +145,7 @@ export const startPasskeyLogin = createServerFn({ method: "POST" }).handler(asyn
     .single();
   if (error) throw new Error(error.message);
 
-  return { challengeId: row.id, options: JSON.parse(JSON.stringify(options)) as Record<string, unknown> };
+  return { challengeId: row.id, optionsJson: JSON.stringify(options) };
 });
 
 /**
