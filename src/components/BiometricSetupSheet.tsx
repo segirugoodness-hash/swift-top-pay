@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { BiometricUnavailableDialog } from "@/components/BiometricUnavailableDialog";
 import { useBiometrics } from "@/hooks/useBiometrics";
+import { passkeysSupported, registerPasskey } from "@/lib/passkeys";
 
 /** Set by auth.tsx on a successful sign-in / verification; consumed once here. */
 export const BIO_OFFER_KEY = "st_bio_offer";
@@ -43,16 +44,23 @@ export function BiometricSetupSheet() {
   }
 
   async function handleEnable() {
-    if (!canEnroll) {
-      close();
-      setNeedApp(true);
-      return;
-    }
     setBusy(true);
-    const ok = await enable();
+    // Passkey enrolment works in any modern browser and powers code-free sign-in.
+    let registered = false;
+    if (passkeysSupported()) {
+      try {
+        await registerPasskey();
+        registered = true;
+      } catch {
+        registered = false;
+      }
+    }
+    // The installed app additionally gets the local app lock and PIN-free approvals.
+    const localOk = canEnroll ? await enable() : false;
     setBusy(false);
     close();
-    if (ok) toast.success("Fingerprint / Face ID enabled for this device");
+    if (registered) toast.success("Fingerprint / Face ID sign-in is on for this device");
+    else if (localOk) toast.success("Fingerprint / Face ID enabled for this device");
     else setNeedApp(true);
   }
 

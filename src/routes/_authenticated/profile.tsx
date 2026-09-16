@@ -7,6 +7,7 @@ import { ReferralPanel } from "@/components/ReferralPanel";
 import { AppDownloadBanner } from "@/components/AppDownloadBanner";
 import { BiometricUnavailableDialog } from "@/components/BiometricUnavailableDialog";
 import { useBiometrics } from "@/hooks/useBiometrics";
+import { PasskeyDevices } from "@/components/PasskeyDevices";
 import { Switch } from "@/components/ui/switch";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { useProfile } from "@/hooks/useProfile";
@@ -114,6 +115,10 @@ function ProfilePage() {
                   </Button>
                 )}
               </div>
+            </div>
+
+            <div className="mt-4">
+              <PasskeyDevices />
             </div>
 
             <div className="mt-4">
