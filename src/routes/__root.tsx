@@ -14,6 +14,8 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { BiometricLock } from "@/components/BiometricLock";
 import { BiometricSetupSheet } from "@/components/BiometricSetupSheet";
+import { OfflineQueueChip } from "@/components/OfflineQueueChip";
+import { ServiceWorkerManager } from "@/components/ServiceWorkerManager";
 
 
 function NotFoundComponent() {
@@ -143,6 +145,8 @@ function RootComponent() {
       </div>
       <BiometricLock />
       <BiometricSetupSheet />
+      <OfflineQueueChip />
+      <ServiceWorkerManager />
       <Toaster theme="dark" position="top-center" />
     </QueryClientProvider>
   );
