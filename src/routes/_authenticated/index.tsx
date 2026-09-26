@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { Bell, Phone, Wifi, Zap, Tv, GraduationCap, ArrowLeftRight, LogOut, Shield } from "lucide-react";
+import { Bell, Phone, Wifi, Zap, Tv, GraduationCap, ArrowLeftRight, LogOut, Shield, Gift } from "lucide-react";
 import { WalletCard } from "@/components/WalletCard";
 import { ServiceCard } from "@/components/ServiceCard";
 import { BottomNav } from "@/components/BottomNav";
@@ -124,6 +124,7 @@ function Dashboard() {
           <ServiceCard to="/cable" label="Cable TV" icon={Tv} tint="emerald" />
           <ServiceCard to="/education" label="Education PINs" icon={GraduationCap} tint="teal" />
           <ServiceCard to="/airtime-to-cash" label="Airtime to Cash" icon={ArrowLeftRight} tint="emerald" />
+          <ServiceCard to="/refer" label="Refer & Earn" icon={Gift} tint="teal" />
         </div>
       </section>
 
