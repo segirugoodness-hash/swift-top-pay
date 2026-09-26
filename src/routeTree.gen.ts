@@ -13,6 +13,7 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedReferRouteImport } from './routes/_authenticated/refer'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
 import { Route as AuthenticatedElectricityRouteImport } from './routes/_authenticated/electricity'
@@ -44,6 +45,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedReferRoute = AuthenticatedReferRouteImport.update({
+  id: '/refer',
+  path: '/refer',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
@@ -131,6 +137,7 @@ export interface FileRoutesByFullPath {
   '/electricity': typeof AuthenticatedElectricityRoute
   '/history': typeof AuthenticatedHistoryRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/refer': typeof AuthenticatedReferRoute
   '/api/public/hooks/otapay-sync': typeof ApiPublicHooksOtapaySyncRoute
   '/api/public/webhooks/otapay-a2c': typeof ApiPublicWebhooksOtapayA2cRoute
   '/api/public/webhooks/paystack': typeof ApiPublicWebhooksPaystackRoute
@@ -148,6 +155,7 @@ export interface FileRoutesByTo {
   '/electricity': typeof AuthenticatedElectricityRoute
   '/history': typeof AuthenticatedHistoryRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/refer': typeof AuthenticatedReferRoute
   '/': typeof AuthenticatedIndexRoute
   '/api/public/hooks/otapay-sync': typeof ApiPublicHooksOtapaySyncRoute
   '/api/public/webhooks/otapay-a2c': typeof ApiPublicWebhooksOtapayA2cRoute
@@ -168,6 +176,7 @@ export interface FileRoutesById {
   '/_authenticated/electricity': typeof AuthenticatedElectricityRoute
   '/_authenticated/history': typeof AuthenticatedHistoryRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
+  '/_authenticated/refer': typeof AuthenticatedReferRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/api/public/hooks/otapay-sync': typeof ApiPublicHooksOtapaySyncRoute
   '/api/public/webhooks/otapay-a2c': typeof ApiPublicWebhooksOtapayA2cRoute
@@ -189,6 +198,7 @@ export interface FileRouteTypes {
     | '/electricity'
     | '/history'
     | '/profile'
+    | '/refer'
     | '/api/public/hooks/otapay-sync'
     | '/api/public/webhooks/otapay-a2c'
     | '/api/public/webhooks/paystack'
@@ -206,6 +216,7 @@ export interface FileRouteTypes {
     | '/electricity'
     | '/history'
     | '/profile'
+    | '/refer'
     | '/'
     | '/api/public/hooks/otapay-sync'
     | '/api/public/webhooks/otapay-a2c'
@@ -225,6 +236,7 @@ export interface FileRouteTypes {
     | '/_authenticated/electricity'
     | '/_authenticated/history'
     | '/_authenticated/profile'
+    | '/_authenticated/refer'
     | '/_authenticated/'
     | '/api/public/hooks/otapay-sync'
     | '/api/public/webhooks/otapay-a2c'
@@ -268,6 +280,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/refer': {
+      id: '/_authenticated/refer'
+      path: '/refer'
+      fullPath: '/refer'
+      preLoaderRoute: typeof AuthenticatedReferRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/profile': {
@@ -375,6 +394,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedElectricityRoute: typeof AuthenticatedElectricityRoute
   AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
+  AuthenticatedReferRoute: typeof AuthenticatedReferRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
 
@@ -389,6 +409,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedElectricityRoute: AuthenticatedElectricityRoute,
   AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
+  AuthenticatedReferRoute: AuthenticatedReferRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
 }
 

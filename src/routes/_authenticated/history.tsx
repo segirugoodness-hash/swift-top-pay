@@ -4,12 +4,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/PageHeader";
 import { BottomNav } from "@/components/BottomNav";
 import { Receipt } from "lucide-react";
+import { useState } from "react";
+import { ReceiptSheet, type ReceiptTx } from "@/components/ReceiptSheet";
 
 export const Route = createFileRoute("/_authenticated/history")({
   component: HistoryPage,
 });
 
 function HistoryPage() {
+  const [receipt, setReceipt] = useState<ReceiptTx | null>(null);
   const { data, isLoading, error } = useQuery({
     queryKey: ["transactions", "all"],
     queryFn: async () => {
@@ -51,12 +54,14 @@ function HistoryPage() {
                 <div className="text-right">
                   <p className="text-sm font-semibold text-foreground">−₦{Number(tx.amount).toLocaleString()}</p>
                   <p className={`text-[11px] capitalize ${tx.status === "success" ? "text-primary" : "text-muted-foreground"}`}>{tx.status}</p>
+                  <button onClick={() => setReceipt(tx as ReceiptTx)} className="mt-1 text-xs font-semibold text-primary underline-offset-2 hover:underline">View Receipt</button>
                 </div>
               </li>
             ))}
           </ul>
         )}
       </div>
+      <ReceiptSheet tx={receipt} onOpenChange={(v) => !v && setReceipt(null)} />
       <BottomNav />
     </div>
   );

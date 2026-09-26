@@ -320,6 +320,30 @@ export type Database = {
         }
         Relationships: []
       }
+      referral_claims: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          milestone: number
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          milestone: number
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          milestone?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       referrals: {
         Row: {
           created_at: string
@@ -513,6 +537,7 @@ export type Database = {
         Args: { _current: string; _new: string }
         Returns: undefined
       }
+      claim_referral_cashback: { Args: never; Returns: number }
       complete_vend: {
         Args: { _provider_ref?: string; _txn_id: string }
         Returns: undefined
