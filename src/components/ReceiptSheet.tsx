@@ -3,13 +3,21 @@ import { Button } from "@/components/ui/button";
 import { Download, Share2 } from "lucide-react";
 import { toast } from "sonner";
 
-export type ReceiptTx = { id: string; type: string; amount: number; status: string; reference: string | null; created_at: string };
+export type ReceiptTx = { id: string; type: string; amount: number; status: string; reference: string | null; created_at: string; wholesale_price?: number | null; metadata?: Record<string, unknown> | null };
 
+const FEE_TYPES = new Set(["electricity", "cable", "education"]);
 function rows(tx: ReceiptTx): [string, string][] {
+  const m = (tx.metadata ?? {}) as Record<string, unknown>;
+  const provider = String(m.network ?? m.provider ?? m.disco ?? m.exam ?? "Swift Top");
+  const beneficiary = String(m.phone ?? m.meter_number ?? m.meter ?? m.smartcard ?? m.account_number ?? "—");
+  const fee = FEE_TYPES.has(tx.type) ? 100 : 0;
   return [
+    ["Status", tx.status === "success" ? "Successful" : tx.status === "failed" ? "Failed" : "Pending"],
     ["Service", String(tx.type).replace(/_/g, " ")],
+    ["Provider", provider],
+    ["Beneficiary", beneficiary],
+    ["Fee", `₦${fee.toLocaleString()}`],
     ["Amount", `₦${Number(tx.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}`],
-    ["Status", tx.status],
     ["Date", new Date(tx.created_at).toLocaleString()],
     ["Reference", tx.reference ?? tx.id],
   ];
@@ -53,6 +61,13 @@ export function ReceiptSheet({ tx, onOpenChange }: { tx: ReceiptTx | null; onOpe
       <SheetContent side="bottom" className="rounded-t-3xl border-border bg-background pb-8">
         <SheetHeader><SheetTitle className="font-display">Transaction receipt</SheetTitle></SheetHeader>
         {tx && (
+          <div className="mt-3 flex justify-center">
+            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${tx.status === "success" ? "bg-primary/15 text-primary" : tx.status === "failed" ? "bg-destructive/15 text-destructive" : "bg-muted text-muted-foreground"}`}>
+              {tx.status === "success" ? "Successful" : tx.status === "failed" ? "Failed" : "Pending"}
+            </span>
+          </div>
+        )}
+        {tx && (
           <dl className="mt-4 space-y-3 rounded-2xl border border-border bg-surface p-4">
             {rows(tx).map(([k, v]) => (
               <div key={k} className="flex justify-between gap-4 text-sm">
@@ -64,7 +79,7 @@ export function ReceiptSheet({ tx, onOpenChange }: { tx: ReceiptTx | null; onOpe
         )}
         <div className="mt-4 flex gap-2">
           <Button variant="secondary" className="h-12 flex-1 rounded-full" onClick={download}><Download className="mr-2 h-4 w-4" />Download</Button>
-          <Button className="h-12 flex-1 rounded-full" onClick={share}><Share2 className="mr-2 h-4 w-4" />Share</Button>
+          <Button className="h-12 flex-1 rounded-full" onClick={share}><Share2 className="mr-2 h-4 w-4" />Share / Download Receipt</Button>
         </div>
       </SheetContent>
     </Sheet>
