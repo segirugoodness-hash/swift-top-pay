@@ -1,15 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Gift } from "lucide-react";
-import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { BottomNav } from "@/components/BottomNav";
 import { ReferralPanel } from "@/components/ReferralPanel";
-import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useProfile } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
+import { SmartVaultCard } from "@/components/SmartVaultCard";
 
 export const Route = createFileRoute("/_authenticated/refer")({
   head: () => ({
@@ -29,8 +27,6 @@ const GOAL = 5;
 
 function ReferPage() {
   const { data: profile } = useProfile();
-  const qc = useQueryClient();
-  const [busy, setBusy] = useState(false);
   const { data } = useQuery({
     queryKey: ["refer-progress", profile?.id],
     enabled: !!profile?.id,
@@ -46,16 +42,6 @@ function ReferPage() {
   const qualified = data?.qualified ?? 0;
   const claimed = data?.claimed ?? 0;
   const inRound = Math.min(GOAL, qualified - claimed * GOAL);
-  const canClaim = qualified >= (claimed + 1) * GOAL;
-
-  async function claim() {
-    setBusy(true);
-    const { data: amt, error } = await supabase.rpc("claim_referral_cashback");
-    setBusy(false);
-    if (error) return toast.error(error.message);
-    toast.success(`₦${Number(amt).toLocaleString()} cashback added to your wallet`);
-    qc.invalidateQueries();
-  }
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -66,11 +52,12 @@ function ReferPage() {
           <p className="mt-3 font-display text-3xl font-bold text-foreground">{inRound} / {GOAL} <span className="text-base font-medium text-muted-foreground">Friends Joined</span></p>
           <Progress value={(inRound / GOAL) * 100} className="mt-3 h-3" />
           <p className="mt-2 text-xs text-muted-foreground">A friend counts once they sign up and fund their wallet.</p>
-          <Button className="mt-4 h-12 w-full rounded-full text-base font-semibold" disabled={!canClaim || busy} onClick={claim}>
-            {busy ? "Claiming…" : canClaim ? "Claim Cashback" : `Invite ${GOAL - inRound} more to unlock`}
-          </Button>
+          <p className="mt-3 text-sm font-semibold text-foreground">{claimed > 0 ? `₦${(claimed*500).toLocaleString()} cashback paid to your Smart Vault` : `Invite ${GOAL - inRound} more to unlock ₦500 cashback`}</p>
+          <p className="text-xs text-muted-foreground">Paid automatically to your Smart Vault at every 5 friends.</p>
         </div>
+        <div className="rounded-2xl border border-border bg-surface p-4"><p className="text-xs text-muted-foreground">Your referral code</p><button className="font-display text-xl font-bold tracking-widest text-foreground" onClick={() => profile && navigator.clipboard.writeText(profile.id.slice(0, 8).toUpperCase())}>{profile?.id.slice(0, 8).toUpperCase()}</button></div>
         <ReferralPanel userId={profile?.id} />
+        <SmartVaultCard />
       </div>
       <BottomNav />
     </div>
