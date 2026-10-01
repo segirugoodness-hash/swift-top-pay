@@ -9,27 +9,28 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
-import { Route as AuthRouteImport } from './routes/auth'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
-import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
-import { Route as AuthenticatedAirtimeRouteImport } from './routes/_authenticated/airtime'
-import { Route as AuthenticatedAirtimeToCashRouteImport } from './routes/_authenticated/airtime-to-cash'
-import { Route as AuthenticatedCableRouteImport } from './routes/_authenticated/cable'
-import { Route as AuthenticatedCreatePinRouteImport } from './routes/_authenticated/create-pin'
-import { Route as AuthenticatedDataRouteImport } from './routes/_authenticated/data'
-import { Route as AuthenticatedEducationRouteImport } from './routes/_authenticated/education'
-import { Route as AuthenticatedElectricityRouteImport } from './routes/_authenticated/electricity'
-import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
-import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedReferRouteImport } from './routes/_authenticated/refer'
-import { Route as ApiPublicHooksOtapaySyncRouteImport } from './routes/api/public/hooks/otapay-sync'
-import { Route as ApiPublicWebhooksOtapayA2cRouteImport } from './routes/api/public/webhooks/otapay-a2c'
+import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
+import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
+import { Route as AuthenticatedElectricityRouteImport } from './routes/_authenticated/electricity'
+import { Route as AuthenticatedEducationRouteImport } from './routes/_authenticated/education'
+import { Route as AuthenticatedDataRouteImport } from './routes/_authenticated/data'
+import { Route as AuthenticatedCreatePinRouteImport } from './routes/_authenticated/create-pin'
+import { Route as AuthenticatedCableRouteImport } from './routes/_authenticated/cable'
+import { Route as AuthenticatedAirtimeToCashRouteImport } from './routes/_authenticated/airtime-to-cash'
+import { Route as AuthenticatedAirtimeRouteImport } from './routes/_authenticated/airtime'
+import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as ApiPublicWebhooksPaystackRouteImport } from './routes/api/public/webhooks/paystack'
+import { Route as ApiPublicWebhooksOtapayA2cRouteImport } from './routes/api/public/webhooks/otapay-a2c'
+import { Route as ApiPublicHooksOtapaySyncRouteImport } from './routes/api/public/hooks/otapay-sync'
 
-const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
-  id: '/_authenticated',
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -37,9 +38,8 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SignupRoute = SignupRouteImport.update({
-  id: '/signup',
-  path: '/signup',
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
@@ -47,40 +47,19 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
+const AuthenticatedReferRoute = AuthenticatedReferRouteImport.update({
+  id: '/refer',
+  path: '/refer',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedAirtimeRoute = AuthenticatedAirtimeRouteImport.update({
-  id: '/airtime',
-  path: '/airtime',
+const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedAirtimeToCashRoute =
-  AuthenticatedAirtimeToCashRouteImport.update({
-    id: '/airtime-to-cash',
-    path: '/airtime-to-cash',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedCableRoute = AuthenticatedCableRouteImport.update({
-  id: '/cable',
-  path: '/cable',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedCreatePinRoute = AuthenticatedCreatePinRouteImport.update({
-  id: '/create-pin',
-  path: '/create-pin',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedDataRoute = AuthenticatedDataRouteImport.update({
-  id: '/data',
-  path: '/data',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedEducationRoute = AuthenticatedEducationRouteImport.update({
-  id: '/education',
-  path: '/education',
+const AuthenticatedHistoryRoute = AuthenticatedHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedElectricityRoute =
@@ -89,25 +68,46 @@ const AuthenticatedElectricityRoute =
     path: '/electricity',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedHistoryRoute = AuthenticatedHistoryRouteImport.update({
-  id: '/history',
-  path: '/history',
+const AuthenticatedEducationRoute = AuthenticatedEducationRouteImport.update({
+  id: '/education',
+  path: '/education',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
+const AuthenticatedDataRoute = AuthenticatedDataRouteImport.update({
+  id: '/data',
+  path: '/data',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedReferRoute = AuthenticatedReferRouteImport.update({
-  id: '/refer',
-  path: '/refer',
+const AuthenticatedCreatePinRoute = AuthenticatedCreatePinRouteImport.update({
+  id: '/create-pin',
+  path: '/create-pin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const ApiPublicHooksOtapaySyncRoute =
-  ApiPublicHooksOtapaySyncRouteImport.update({
-    id: '/api/public/hooks/otapay-sync',
-    path: '/api/public/hooks/otapay-sync',
+const AuthenticatedCableRoute = AuthenticatedCableRouteImport.update({
+  id: '/cable',
+  path: '/cable',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAirtimeToCashRoute =
+  AuthenticatedAirtimeToCashRouteImport.update({
+    id: '/airtime-to-cash',
+    path: '/airtime-to-cash',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAirtimeRoute = AuthenticatedAirtimeRouteImport.update({
+  id: '/airtime',
+  path: '/airtime',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const ApiPublicWebhooksPaystackRoute =
+  ApiPublicWebhooksPaystackRouteImport.update({
+    id: '/api/public/webhooks/paystack',
+    path: '/api/public/webhooks/paystack',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicWebhooksOtapayA2cRoute =
@@ -116,10 +116,10 @@ const ApiPublicWebhooksOtapayA2cRoute =
     path: '/api/public/webhooks/otapay-a2c',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicWebhooksPaystackRoute =
-  ApiPublicWebhooksPaystackRouteImport.update({
-    id: '/api/public/webhooks/paystack',
-    path: '/api/public/webhooks/paystack',
+const ApiPublicHooksOtapaySyncRoute =
+  ApiPublicHooksOtapaySyncRouteImport.update({
+    id: '/api/public/hooks/otapay-sync',
+    path: '/api/public/hooks/otapay-sync',
     getParentRoute: () => rootRouteImport,
   } as any)
 
@@ -254,11 +254,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/_authenticated': {
-      id: '/_authenticated'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -268,11 +268,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/signup': {
-      id: '/signup'
-      path: '/signup'
-      fullPath: '/signup'
-      preLoaderRoute: typeof SignupRouteImport
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/': {
@@ -282,67 +282,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/admin': {
-      id: '/_authenticated/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AuthenticatedAdminRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/airtime': {
-      id: '/_authenticated/airtime'
-      path: '/airtime'
-      fullPath: '/airtime'
-      preLoaderRoute: typeof AuthenticatedAirtimeRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/airtime-to-cash': {
-      id: '/_authenticated/airtime-to-cash'
-      path: '/airtime-to-cash'
-      fullPath: '/airtime-to-cash'
-      preLoaderRoute: typeof AuthenticatedAirtimeToCashRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/cable': {
-      id: '/_authenticated/cable'
-      path: '/cable'
-      fullPath: '/cable'
-      preLoaderRoute: typeof AuthenticatedCableRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/create-pin': {
-      id: '/_authenticated/create-pin'
-      path: '/create-pin'
-      fullPath: '/create-pin'
-      preLoaderRoute: typeof AuthenticatedCreatePinRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/data': {
-      id: '/_authenticated/data'
-      path: '/data'
-      fullPath: '/data'
-      preLoaderRoute: typeof AuthenticatedDataRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/education': {
-      id: '/_authenticated/education'
-      path: '/education'
-      fullPath: '/education'
-      preLoaderRoute: typeof AuthenticatedEducationRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/electricity': {
-      id: '/_authenticated/electricity'
-      path: '/electricity'
-      fullPath: '/electricity'
-      preLoaderRoute: typeof AuthenticatedElectricityRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/history': {
-      id: '/_authenticated/history'
-      path: '/history'
-      fullPath: '/history'
-      preLoaderRoute: typeof AuthenticatedHistoryRouteImport
+    '/_authenticated/refer': {
+      id: '/_authenticated/refer'
+      path: '/refer'
+      fullPath: '/refer'
+      preLoaderRoute: typeof AuthenticatedReferRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/profile': {
@@ -352,18 +296,74 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProfileRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/refer': {
-      id: '/_authenticated/refer'
-      path: '/refer'
-      fullPath: '/refer'
-      preLoaderRoute: typeof AuthenticatedReferRouteImport
+    '/_authenticated/history': {
+      id: '/_authenticated/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof AuthenticatedHistoryRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/api/public/hooks/otapay-sync': {
-      id: '/api/public/hooks/otapay-sync'
-      path: '/api/public/hooks/otapay-sync'
-      fullPath: '/api/public/hooks/otapay-sync'
-      preLoaderRoute: typeof ApiPublicHooksOtapaySyncRouteImport
+    '/_authenticated/electricity': {
+      id: '/_authenticated/electricity'
+      path: '/electricity'
+      fullPath: '/electricity'
+      preLoaderRoute: typeof AuthenticatedElectricityRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/education': {
+      id: '/_authenticated/education'
+      path: '/education'
+      fullPath: '/education'
+      preLoaderRoute: typeof AuthenticatedEducationRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/data': {
+      id: '/_authenticated/data'
+      path: '/data'
+      fullPath: '/data'
+      preLoaderRoute: typeof AuthenticatedDataRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/create-pin': {
+      id: '/_authenticated/create-pin'
+      path: '/create-pin'
+      fullPath: '/create-pin'
+      preLoaderRoute: typeof AuthenticatedCreatePinRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/cable': {
+      id: '/_authenticated/cable'
+      path: '/cable'
+      fullPath: '/cable'
+      preLoaderRoute: typeof AuthenticatedCableRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/airtime-to-cash': {
+      id: '/_authenticated/airtime-to-cash'
+      path: '/airtime-to-cash'
+      fullPath: '/airtime-to-cash'
+      preLoaderRoute: typeof AuthenticatedAirtimeToCashRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/airtime': {
+      id: '/_authenticated/airtime'
+      path: '/airtime'
+      fullPath: '/airtime'
+      preLoaderRoute: typeof AuthenticatedAirtimeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/public/webhooks/paystack': {
+      id: '/api/public/webhooks/paystack'
+      path: '/api/public/webhooks/paystack'
+      fullPath: '/api/public/webhooks/paystack'
+      preLoaderRoute: typeof ApiPublicWebhooksPaystackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/webhooks/otapay-a2c': {
@@ -373,11 +373,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicWebhooksOtapayA2cRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/webhooks/paystack': {
-      id: '/api/public/webhooks/paystack'
-      path: '/api/public/webhooks/paystack'
-      fullPath: '/api/public/webhooks/paystack'
-      preLoaderRoute: typeof ApiPublicWebhooksPaystackRouteImport
+    '/api/public/hooks/otapay-sync': {
+      id: '/api/public/hooks/otapay-sync'
+      path: '/api/public/hooks/otapay-sync'
+      fullPath: '/api/public/hooks/otapay-sync'
+      preLoaderRoute: typeof ApiPublicHooksOtapaySyncRouteImport
       parentRoute: typeof rootRouteImport
     }
   }

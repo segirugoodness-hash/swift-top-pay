@@ -23,7 +23,7 @@ export function SmartVaultCard() {
 
   async function update(patch: { vault_roundup?: boolean; vault_roundup_step?: number }) {
     const { error } = await supabase.from("profiles").update(patch).eq("id", p!.id);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     qc.invalidateQueries({ queryKey: ["profile"] });
   }
 
@@ -31,7 +31,7 @@ export function SmartVaultCard() {
     setBusy(true);
     const { error } = await supabase.rpc("vault_to_wallet", { _amount: Number(amount), _pin: pin });
     setBusy(false);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     toast.success(`₦${Number(amount).toLocaleString()} moved to your wallet`);
     setPinOpen(false); setAmount("");
     qc.invalidateQueries();
