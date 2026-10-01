@@ -219,7 +219,7 @@ function VerifiedUpgradeFlow() {
             <p className="text-sm font-bold">Your details are safe!</p>
           </div>
           <p className="text-xs text-muted-foreground">
-Your details are safe! Your permanent verification is being processed. In the meantime, your temporary funding account has been generated.
+Your details are safe! Your permanent bank account is being processed. In the meantime, use your temporary funding bank account below to top up immediately.
           </p>
         </div>
         <div className="rounded-2xl border border-border bg-surface p-4">

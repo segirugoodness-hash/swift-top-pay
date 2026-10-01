@@ -19,6 +19,9 @@ export type Profile = {
   verification_last_name?: string | null;
   verification_email?: string | null;
   verification_submitted_at?: string | null;
+  vault_balance?: number;
+  vault_roundup?: boolean;
+  vault_roundup_step?: number;
 };
 
 export function useProfile() {
