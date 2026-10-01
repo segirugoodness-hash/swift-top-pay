@@ -269,6 +269,9 @@ export type Database = {
           referred_by: string | null
           transaction_pin_hash: string | null
           updated_at: string
+          vault_balance: number
+          vault_roundup: boolean
+          vault_roundup_step: number
           verification_email: string | null
           verification_first_name: string | null
           verification_last_name: string | null
@@ -290,6 +293,9 @@ export type Database = {
           referred_by?: string | null
           transaction_pin_hash?: string | null
           updated_at?: string
+          vault_balance?: number
+          vault_roundup?: boolean
+          vault_roundup_step?: number
           verification_email?: string | null
           verification_first_name?: string | null
           verification_last_name?: string | null
@@ -311,6 +317,9 @@ export type Database = {
           referred_by?: string | null
           transaction_pin_hash?: string | null
           updated_at?: string
+          vault_balance?: number
+          vault_roundup?: boolean
+          vault_roundup_step?: number
           verification_email?: string | null
           verification_first_name?: string | null
           verification_last_name?: string | null
@@ -537,7 +546,6 @@ export type Database = {
         Args: { _current: string; _new: string }
         Returns: undefined
       }
-      claim_referral_cashback: { Args: never; Returns: number }
       complete_vend: {
         Args: { _provider_ref?: string; _txn_id: string }
         Returns: undefined
@@ -589,6 +597,10 @@ export type Database = {
       try_acquire_service_lock: {
         Args: { _service_type: string }
         Returns: boolean
+      }
+      vault_to_wallet: {
+        Args: { _amount: number; _pin: string }
+        Returns: number
       }
       verify_transaction_pin: { Args: { _pin: string }; Returns: boolean }
     }
