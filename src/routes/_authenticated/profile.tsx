@@ -8,7 +8,6 @@ import { AppDownloadBanner } from "@/components/AppDownloadBanner";
 import { BiometricUnavailableDialog } from "@/components/BiometricUnavailableDialog";
 import { useBiometrics } from "@/hooks/useBiometrics";
 import { PasskeyDevices } from "@/components/PasskeyDevices";
-import { SmartVaultCard } from "@/components/SmartVaultCard";
 import { Switch } from "@/components/ui/switch";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { useProfile } from "@/hooks/useProfile";
@@ -126,12 +125,9 @@ function ProfilePage() {
               <BiometricSettings hasPin={!!profile?.transaction_pin_hash} />
             </div>
 
-            <div className="mt-6"><SmartVaultCard /></div>
-
             <div className="mt-6">
               <p className="mb-2 text-[11px] uppercase tracking-wide text-muted-foreground">Referrals</p>
               <ReferralPanel userId={profile?.id} />
-              <a href="/refer" className="mt-2 block text-center text-sm font-semibold text-primary">Open Refer &amp; Earn →</a>
             </div>
 
 

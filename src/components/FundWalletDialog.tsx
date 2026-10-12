@@ -216,10 +216,11 @@ function VerifiedUpgradeFlow() {
         <div className="rounded-2xl border border-primary/40 bg-gradient-to-br from-primary/15 to-primary/5 p-4">
           <div className="mb-2 flex items-center gap-2 text-primary">
             <ShieldCheck className="h-5 w-5" />
-            <p className="text-sm font-bold">Your details are safe!</p>
+            <p className="text-sm font-bold">BVN submitted successfully</p>
           </div>
           <p className="text-xs text-muted-foreground">
-Your details are safe! Your permanent bank account is being processed. In the meantime, use your temporary funding bank account below to top up immediately.
+Your BVN has been submitted successfully. Your personal virtual account is being processed and will be
+            assigned to your dashboard shortly.
           </p>
         </div>
         <div className="rounded-2xl border border-border bg-surface p-4">
@@ -228,7 +229,8 @@ Your details are safe! Your permanent bank account is being processed. In the me
             <p className="text-sm font-semibold text-foreground">Fund your wallet right now</p>
           </div>
           <p className="text-xs text-muted-foreground">
-            While we finalise your dedicated account, use the <span className="font-semibold text-foreground">Bank transfer</span> tab at the top of this dialog for your temporary account, or Pay Now to fund instantly with your card, USSD or bank transfer via secure Paystack checkout.
+            While we finalise your dedicated account, use <span className="font-semibold text-foreground">Pay Now</span> at
+            the top of this dialog to fund instantly with your card, USSD or bank transfer via secure Paystack checkout.
           </p>
         </div>
       </div>

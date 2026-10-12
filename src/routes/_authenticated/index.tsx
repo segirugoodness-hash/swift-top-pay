@@ -1,9 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { Bell, Phone, Wifi, Zap, Tv, GraduationCap, ArrowLeftRight, LogOut, Shield, Gift } from "lucide-react";
+import { Bell, Phone, Wifi, Zap, Tv, GraduationCap, ArrowLeftRight, LogOut, Shield } from "lucide-react";
 import { WalletCard } from "@/components/WalletCard";
-import { InstallAppButton } from "@/components/InstallAppButton";
-import { SmartVaultCard } from "@/components/SmartVaultCard";
 import { ServiceCard } from "@/components/ServiceCard";
 import { BottomNav } from "@/components/BottomNav";
 import { UpgradeBanner } from "@/components/UpgradeBanner";
@@ -78,7 +76,6 @@ function Dashboard() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <InstallAppButton />
           {isAdmin && (
             <Link
               to="/admin"
@@ -115,10 +112,6 @@ function Dashboard() {
         <WalletCard />
       </div>
 
-      <div className="px-4 pt-3">
-        <SmartVaultCard />
-      </div>
-
       <section className="mt-6 px-4">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-base font-semibold text-foreground">Quick services</h2>
@@ -131,7 +124,6 @@ function Dashboard() {
           <ServiceCard to="/cable" label="Cable TV" icon={Tv} tint="emerald" />
           <ServiceCard to="/education" label="Education PINs" icon={GraduationCap} tint="teal" />
           <ServiceCard to="/airtime-to-cash" label="Airtime to Cash" icon={ArrowLeftRight} tint="emerald" />
-          <ServiceCard to="/refer" label="Refer & Earn" icon={Gift} tint="teal" />
         </div>
       </section>
 

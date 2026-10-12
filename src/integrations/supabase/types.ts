@@ -269,9 +269,6 @@ export type Database = {
           referred_by: string | null
           transaction_pin_hash: string | null
           updated_at: string
-          vault_balance: number
-          vault_roundup: boolean
-          vault_roundup_step: number
           verification_email: string | null
           verification_first_name: string | null
           verification_last_name: string | null
@@ -293,9 +290,6 @@ export type Database = {
           referred_by?: string | null
           transaction_pin_hash?: string | null
           updated_at?: string
-          vault_balance?: number
-          vault_roundup?: boolean
-          vault_roundup_step?: number
           verification_email?: string | null
           verification_first_name?: string | null
           verification_last_name?: string | null
@@ -317,39 +311,12 @@ export type Database = {
           referred_by?: string | null
           transaction_pin_hash?: string | null
           updated_at?: string
-          vault_balance?: number
-          vault_roundup?: boolean
-          vault_roundup_step?: number
           verification_email?: string | null
           verification_first_name?: string | null
           verification_last_name?: string | null
           verification_status?: string
           verification_submitted_at?: string | null
           wallet_balance?: number
-        }
-        Relationships: []
-      }
-      referral_claims: {
-        Row: {
-          amount: number
-          created_at: string
-          id: string
-          milestone: number
-          user_id: string
-        }
-        Insert: {
-          amount: number
-          created_at?: string
-          id?: string
-          milestone: number
-          user_id: string
-        }
-        Update: {
-          amount?: number
-          created_at?: string
-          id?: string
-          milestone?: number
-          user_id?: string
         }
         Relationships: []
       }
@@ -597,10 +564,6 @@ export type Database = {
       try_acquire_service_lock: {
         Args: { _service_type: string }
         Returns: boolean
-      }
-      vault_to_wallet: {
-        Args: { _amount: number; _pin: string }
-        Returns: number
       }
       verify_transaction_pin: { Args: { _pin: string }; Returns: boolean }
     }

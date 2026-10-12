@@ -1,6 +1,16 @@
 # Swift Top roadmap
 
-- [ ] Reduce repeat client queries; centralize auth cache invalidation and refresh balances after changes
-- [ ] Use numeric email OTP for sign-in, sign-up, recovery, and PIN verification; keep passkeys as a separate option
-- [ ] Retain install prompts and validated PWA metadata while retiring offline app-shell caching
-- [ ] Verify phone-install assets, auth UI states, query behavior, and preview diagnostics
+- [x] Passkey (Fingerprint / Face ID) sign-in: table, server verification, enrol + login UI
+      (verified end to end: enrol on Profile, then "Login with Biometrics" signs in)
+- [x] Brevo email sending: gateway-backed helper in src/lib/email.server.ts, purchase receipts
+      sent after every successful vend
+- [x] Offline purchase queue with auto-retry (src/lib/offline-queue.ts + OfflineQueueChip)
+- [x] Installable app shell / service worker + 48px tap targets
+- [x] Otapay routing completeness: airtime, data, cable, electricity and education all call
+      Otapay through the vend engine with explicit payloads; bills carry the ₦100 service fee
+      so admin_profits records a non-zero margin.
+
+## Needs the account owner
+- Auth code emails (sign-in / reset codes) still send through the built-in mail service.
+  To route those through Brevo too, the Brevo SMTP host, login and key must be entered in
+  the project's email settings — that part cannot be automated here.

@@ -1,4 +1,3 @@
-import type { ErrorComponentProps } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
@@ -8,7 +7,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -17,7 +16,6 @@ import { BiometricLock } from "@/components/BiometricLock";
 import { BiometricSetupSheet } from "@/components/BiometricSetupSheet";
 import { OfflineQueueChip } from "@/components/OfflineQueueChip";
 import { ServiceWorkerManager } from "@/components/ServiceWorkerManager";
-import { supabase } from "@/integrations/supabase/client";
 
 
 function NotFoundComponent() {
@@ -42,7 +40,7 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: ErrorComponentProps) {
+function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
   useEffect(() => {
@@ -83,7 +81,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
-      { name: "theme-color", content: "#0d1b1e" },
+      { name: "theme-color", content: "#111a2e" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-title", content: "Swift Top" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
@@ -139,31 +137,6 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  const lastUserId = useRef<string | null>(null);
-
-  useEffect(() => {
-    const { data } = supabase.auth.onAuthStateChange((event, session) => {
-      const nextUserId = session?.user.id ?? null;
-
-      if (event === "INITIAL_SESSION") {
-        lastUserId.current = nextUserId;
-        return;
-      }
-
-      if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
-        const identityChanged = lastUserId.current !== nextUserId;
-        lastUserId.current = nextUserId;
-        if (identityChanged) queryClient.clear();
-        return;
-      }
-
-      if (event === "USER_UPDATED") {
-        void queryClient.invalidateQueries({ queryKey: ["profile"] });
-      }
-    });
-
-    return () => data.subscription.unsubscribe();
-  }, [queryClient]);
 
   return (
     <QueryClientProvider client={queryClient}>
