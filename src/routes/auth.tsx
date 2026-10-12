@@ -7,6 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Zap } from "lucide-react";
+import { DIGITS_ONLY, otpErrorMessage } from "@/lib/otp-errors";
+import { offerBiometricSetup } from "@/components/BiometricSetupSheet";
+import { Fingerprint } from "lucide-react";
+import { passkeysSupported, signInWithPasskey } from "@/lib/passkeys";
 
 export const Route = createFileRoute("/auth")({
   component: AuthPage,
@@ -34,10 +38,36 @@ function AuthPage() {
   const [cooldown, setCooldown] = useState(0);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) navigate({ to: "/" });
-    });
+    // Referral links look like /auth?ref=<user_id>; remember it until signup completes.
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("ref");
+    if (ref) {
+      sessionStorage.setItem("st_ref", ref);
+      localStorage.setItem("st_ref", ref);
+    }
+    if (params.get("mode") === "signup") setMode("signup");
+  }, []);
+
+  useEffect(() => {
+    supabase.auth.getUser()
+      .then(({ data }) => {
+        if (data.user) navigate({ to: "/" });
+      })
+      .catch(() => toast.error("Could not check your sign-in status"));
   }, [navigate]);
+
+  /** Links the new account to whoever referred them (no-op when there is no ref). */
+  async function attachReferral() {
+    const ref = sessionStorage.getItem("st_ref") ?? localStorage.getItem("st_ref");
+    if (!ref) return;
+    try {
+      await supabase.rpc("attach_referrer", { _referrer: ref });
+      sessionStorage.removeItem("st_ref");
+      localStorage.removeItem("st_ref");
+    } catch {
+      // referral tracking must never block sign-in
+    }
+  }
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -47,25 +77,64 @@ function AuthPage() {
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
+    if (!/.+@.+\..+/.test(email)) return toast.error("Enter your email address");
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (error) return toast.error(error.message);
-    toast.success("Welcome back");
-    navigate({ to: "/" });
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: { shouldCreateUser: false },
+      });
+      if (error) throw error;
+      setOtpPurpose("signin");
+      setMode("verify");
+      setCooldown(60);
+      toast.success("We sent a 6-digit sign-in code to your email");
+    } catch (error) {
+      toast.error(otpErrorMessage(error));
+    } finally {
+      setLoading(false);
+    }
   }
 
   /** Passwordless sign-in with a 6-digit email code. */
   async function handleOtpSignIn() {
     if (!/.+@.+\..+/.test(email)) return toast.error("Enter your email address first");
     setLoading(true);
-    const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
-    setLoading(false);
-    if (error) return toast.error(error.message);
-    setOtpPurpose("signin");
-    setMode("verify");
-    setCooldown(60);
-    toast.success("We sent a 6-digit sign-in code to your email");
+    try {
+      const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+      if (error) throw error;
+      setOtpPurpose("signin");
+      setMode("verify");
+      setCooldown(60);
+      toast.success("We sent a 6-digit sign-in code to your email");
+    } catch (error) {
+      toast.error(otpErrorMessage(error));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  /** Returning users: fingerprint / Face ID instead of a password or a code. */
+  async function handlePasskeySignIn() {
+    if (!passkeysSupported()) {
+      return toast.error("This device doesn't support Fingerprint / Face ID sign-in");
+    }
+    setLoading(true);
+    try {
+      await signInWithPasskey();
+      await attachReferral();
+      toast.success("Signed in");
+      navigate({ to: "/" });
+    } catch (e) {
+      const msg = (e as Error).message || "";
+      toast.error(
+        /not set up|couldn't find/i.test(msg)
+          ? "This device isn't set up yet — sign in once, then enable Fingerprint / Face ID."
+          : msg || "Fingerprint sign-in was cancelled",
+      );
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleSignup(e: React.FormEvent) {
@@ -73,85 +142,118 @@ function AuthPage() {
     if (phone.length !== 11) return toast.error("Enter a valid 11-digit phone number");
     if (password.length < 8) return toast.error("Password must be at least 8 characters");
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName, phone },
-        emailRedirectTo: `${window.location.origin}/`,
-      },
-    });
-    setLoading(false);
-    if (error) return toast.error(error.message);
-    setOtpPurpose("signup");
-    setMode("verify");
-    setCooldown(60);
-    toast.success("We sent a 6-digit code to your email");
+    if (!/.+@.+\..+/.test(email)) return toast.error("Enter a valid email address");
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: true,
+          data: { full_name: fullName, phone },
+        },
+      });
+      if (error) throw error;
+      setOtpPurpose("signup");
+      setMode("verify");
+      setCooldown(60);
+      toast.success("We sent a 6-digit code to your email");
+    } catch (error) {
+      toast.error(otpErrorMessage(error));
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleVerify(e: React.FormEvent) {
     e.preventDefault();
-    if (otp.length !== 6) return toast.error("Enter the 6-digit code");
+    if (!/^\d{6}$/.test(otp)) return toast.error("Enter the 6-digit code");
     setLoading(true);
-    const { error } = await supabase.auth.verifyOtp({
-      email,
-      token: otp,
-      type: otpPurpose === "signup" ? "signup" : "email",
-    });
-    setLoading(false);
-    if (error) return toast.error(error.message);
-    if (otpPurpose === "recover") {
-      // Recovery: the user is now signed in, continue to the new-password step.
-      setMode("reset");
-    } else if (otpPurpose === "signin") {
-      toast.success("Signed in");
-      navigate({ to: "/" });
-    } else {
-      toast.success("Account verified — set your transaction PIN");
-      navigate({ to: "/create-pin" });
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email,
+        token: otp,
+        type: otpPurpose === "recover" ? "recovery" : "email",
+      });
+      if (error) throw error;
+      if (otpPurpose === "recover") {
+        setMode("reset");
+      } else if (otpPurpose === "signin") {
+        await attachReferral();
+        offerBiometricSetup();
+        toast.success("Signed in");
+        navigate({ to: "/" });
+      } else {
+        await attachReferral();
+        offerBiometricSetup();
+        toast.success("Account verified — set your transaction PIN");
+        navigate({ to: "/create-pin" });
+      }
+    } catch (error) {
+      setOtp("");
+      toast.error(otpErrorMessage(error));
+    } finally {
+      setLoading(false);
     }
   }
 
   async function handleForgot(e: React.FormEvent) {
     e.preventDefault();
+    if (!/.+@.+\..+/.test(email)) return toast.error("Enter your email address");
     setLoading(true);
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { shouldCreateUser: false },
-    });
-    setLoading(false);
-    if (error) return toast.error(error.message);
-    setOtpPurpose("recover");
-    setMode("verify");
-    setCooldown(60);
-    toast.success("Reset code sent to your email");
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      if (error) throw error;
+      setOtpPurpose("recover");
+      setMode("verify");
+      setCooldown(60);
+      toast.success("Reset code sent to your email");
+    } catch (error) {
+      toast.error(otpErrorMessage(error));
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleReset(e: React.FormEvent) {
     e.preventDefault();
     if (password.length < 8) return toast.error("Password must be at least 8 characters");
     setLoading(true);
-    const { error } = await supabase.auth.updateUser({ password });
-    setLoading(false);
-    if (error) return toast.error(error.message);
-    toast.success("Password updated");
-    navigate({ to: "/" });
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) throw error;
+      toast.success("Password updated");
+      navigate({ to: "/" });
+    } catch (error) {
+      toast.error(otpErrorMessage(error));
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function resendOtp() {
     if (cooldown > 0) return;
     setLoading(true);
-    if (otpPurpose === "signup") {
-      const { error } = await supabase.auth.resend({ type: "signup", email });
+    try {
+      const result = otpPurpose === "recover"
+        ? await supabase.auth.resetPasswordForEmail(email)
+        : await supabase.auth.signInWithOtp({
+            email,
+            options: {
+              shouldCreateUser: otpPurpose === "signup",
+              ...(otpPurpose === "signup" ? { data: { full_name: fullName, phone } } : {}),
+            },
+          });
+      if (result.error) throw result.error;
+      setOtp("");
+      setCooldown(60);
+      toast.success("A fresh code was sent");
+    } catch (error) {
+      toast.error(otpErrorMessage(error));
+    } finally {
       setLoading(false);
-      if (error) return toast.error(error.message);
-    } else {
-      const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
-      setLoading(false);
-      if (error) return toast.error(error.message);
     }
-    setCooldown(60);
-    toast.success("A fresh code was sent");
   }
 
 
@@ -174,21 +276,22 @@ function AuthPage() {
             <p className="mt-1 text-sm text-muted-foreground">Sign in to your Swift Top account.</p>
           </div>
           <Field id="email" label="Email" type="email" value={email} onChange={setEmail} placeholder="you@example.com" />
-          <Field id="password" label="Password" type="password" value={password} onChange={setPassword} placeholder="••••••••" />
           <button type="button" onClick={() => setMode("forgot")} className="self-end text-xs font-medium text-primary">
             Forgot password?
           </button>
           <Button type="submit" disabled={loading} className="h-12 rounded-full text-base font-semibold">
-            {loading ? "Signing in…" : "Sign in"}
+            {loading ? "Sending code…" : "Continue with email code"}
           </Button>
           <button
             type="button"
-            onClick={handleOtpSignIn}
+            onClick={() => { handlePasskeySignIn().catch(() => undefined); }}
             disabled={loading}
-            className="rounded-full border border-border py-3 text-sm font-semibold text-primary disabled:text-muted-foreground"
+            className="flex min-h-12 items-center justify-center gap-2 rounded-full bg-primary/15 py-3 text-sm font-semibold text-primary disabled:opacity-60"
           >
-            Sign in with a 6-digit email code
+            <Fingerprint className="h-4 w-4" />
+            Login with Biometrics
           </button>
+
 
           <p className="mt-auto text-center text-sm text-muted-foreground">
             New to Swift Top?{" "}
@@ -208,9 +311,8 @@ function AuthPage() {
           <Field id="name" label="Full name" value={fullName} onChange={setFullName} placeholder="Ada Okoro" />
           <Field id="phone" label="Phone number" value={phone} onChange={(v) => setPhone(v.replace(/\D/g, ""))} placeholder="08012345678" inputMode="numeric" maxLength={11} />
           <Field id="email" label="Email" type="email" value={email} onChange={setEmail} placeholder="you@example.com" />
-          <Field id="password" label="Password" type="password" value={password} onChange={setPassword} placeholder="At least 8 characters" />
           <Button type="submit" disabled={loading} className="h-12 rounded-full text-base font-semibold">
-            {loading ? "Creating…" : "Sign up"}
+            {loading ? "Sending code…" : "Create account with email code"}
           </Button>
           <p className="mt-auto text-center text-sm text-muted-foreground">
             Already have an account?{" "}
@@ -246,7 +348,7 @@ function AuthPage() {
             </p>
           </div>
           <div className="flex justify-center">
-            <InputOTP maxLength={6} value={otp} onChange={setOtp}>
+            <InputOTP maxLength={6} value={otp} onChange={setOtp} pattern={DIGITS_ONLY} inputMode="numeric" autoFocus>
               <InputOTPGroup>
                 {[0, 1, 2, 3, 4, 5].map((i) => (
                   <InputOTPSlot key={i} index={i} className="h-12 w-11 text-lg" />

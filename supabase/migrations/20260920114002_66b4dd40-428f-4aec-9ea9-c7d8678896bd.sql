@@ -1,0 +1,1 @@
+DELETE FROM public.user_passkeys WHERE device_label = 'This device' AND user_id = '6207da06-8599-4a87-b36f-f2a840fde6c6';

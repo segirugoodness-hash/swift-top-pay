@@ -1,5 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export type Profile = {
@@ -19,11 +18,13 @@ export type Profile = {
   verification_last_name?: string | null;
   verification_email?: string | null;
   verification_submitted_at?: string | null;
+  vault_balance?: number;
+  vault_roundup?: boolean;
+  vault_roundup_step?: number;
 };
 
 export function useProfile() {
-  const qc = useQueryClient();
-  const q = useQuery({
+  return useQuery({
     queryKey: ["profile"],
     queryFn: async (): Promise<Profile | null> => {
       const { data: u } = await supabase.auth.getUser();
@@ -36,17 +37,8 @@ export function useProfile() {
       if (error) throw error;
       return data as Profile | null;
     },
-    staleTime: 30_000,
+    staleTime: 60_000,
   });
-
-  useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange(() => {
-      qc.invalidateQueries({ queryKey: ["profile"] });
-    });
-    return () => sub.subscription.unsubscribe();
-  }, [qc]);
-
-  return q;
 }
 
 export function useAdminSettings() {

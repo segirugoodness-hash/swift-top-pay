@@ -105,6 +105,29 @@ export const vendPurchase = createServerFn({ method: "POST" })
       });
       if (doneErr) throw new Error(doneErr.message);
 
+      // Receipt email — best effort, never blocks or fails the purchase.
+      const email = context.claims["email"] as string | undefined;
+      if (email) {
+        try {
+          const { sendEmail, receiptHtml } = await import("@/lib/email.server");
+          await sendEmail({
+            to: email,
+            subject: `Swift Top receipt — ${data.service} ₦${data.retail.toLocaleString()}`,
+            html: receiptHtml({
+              service: data.service,
+              amount: data.retail,
+              reference: providerRef ?? reference,
+              detail: Object.entries(data.metadata)
+                .filter(([, v]) => typeof v === "string" || typeof v === "number")
+                .map(([k, v]) => `${k}: ${String(v)}`)
+                .join(" · "),
+            }),
+          });
+        } catch {
+          // email delivery problems must never affect the wallet or the ledger
+        }
+      }
+
       return { ok: true, reference, txn_id, provider_ref: providerRef };
     } finally {
       await supabase.rpc("release_service_lock", { _service_type: data.service });

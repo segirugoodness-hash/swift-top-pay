@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useProfile } from "@/hooks/useProfile";
 import { FundWalletDialog } from "@/components/FundWalletDialog";
 import { WithdrawDialog } from "@/components/WithdrawDialog";
+import { TempAccountCard } from "@/components/TempAccountCard";
 
 export function WalletCard() {
   const [visible, setVisible] = useState(true);
@@ -57,6 +58,7 @@ export function WalletCard() {
           </button>
         </div>
       </div>
+      <TempAccountCard />
 
       <FundWalletDialog open={fundOpen} onOpenChange={setFundOpen} />
       <WithdrawDialog open={withdrawOpen} onOpenChange={setWithdrawOpen} />

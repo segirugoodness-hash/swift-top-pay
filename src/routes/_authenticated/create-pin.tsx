@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Button } from "@/components/ui/button";
 import { ShieldCheck } from "lucide-react";
+import { DIGITS_ONLY } from "@/lib/otp-errors";
 import { useQueryClient } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/_authenticated/create-pin")({
@@ -47,7 +48,7 @@ function CreatePinPage() {
 
       <div className="mt-10 flex justify-center">
         {step === "choose" ? (
-          <InputOTP maxLength={4} value={pin} onChange={setPin} autoFocus>
+          <InputOTP maxLength={4} value={pin} onChange={setPin} pattern={DIGITS_ONLY} inputMode="numeric" autoFocus>
             <InputOTPGroup>
               {[0, 1, 2, 3].map((i) => (
                 <InputOTPSlot key={i} index={i} className="h-14 w-12 text-xl" />
@@ -55,7 +56,7 @@ function CreatePinPage() {
             </InputOTPGroup>
           </InputOTP>
         ) : (
-          <InputOTP maxLength={4} value={confirm} onChange={setConfirm} autoFocus>
+          <InputOTP maxLength={4} value={confirm} onChange={setConfirm} pattern={DIGITS_ONLY} inputMode="numeric" autoFocus>
             <InputOTPGroup>
               {[0, 1, 2, 3].map((i) => (
                 <InputOTPSlot key={i} index={i} className="h-14 w-12 text-xl" />

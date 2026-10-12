@@ -76,7 +76,9 @@ export const checkFundingStatus = createServerFn({ method: "POST" })
       .eq("reference", data.reference)
       .maybeSingle();
 
-    const credited = txn?.status === "success" || remote.status === "success";
+    // A successful provider lookup is not itself proof that our atomic webhook
+    // settlement has committed. Only the wallet ledger is authoritative here.
+    const credited = txn?.status === "success";
     if (credited) {
       await supabaseAdmin
         .from("funding_requests")
@@ -84,5 +86,8 @@ export const checkFundingStatus = createServerFn({ method: "POST" })
         .eq("user_id", userId)
         .eq("account_name", data.reference);
     }
-    return { status: credited ? "success" : remote.status, amount: remote.amount };
+    return {
+      status: credited ? "success" : remote.status === "failed" ? "failed" : "pending",
+      amount: remote.amount,
+    };
   });
