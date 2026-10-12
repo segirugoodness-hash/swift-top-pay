@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Centralize Supabase auth-transition handling in the root so shared profile consumers do not create duplicate listeners or retain another user's cached data.
