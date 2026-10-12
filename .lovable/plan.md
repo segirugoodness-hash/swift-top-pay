@@ -1,17 +1,22 @@
-# Swift Top utility payment updates
+# Swift Top: faster data, OTP-only sign-in, install-only PWA
 
 ## Goal
-Harden the existing sign-in and admin paths, remove any actual user-to-user transfers, and extend database-driven pricing without disrupting the current mobile dashboard.
+Reduce repeated account-data requests, preserve accurate wallet balances after actions, use numeric email codes for email sign-in, and keep phone installation support without offline app caching or changes to the established dashboard layout.
 
 ## Work
-1. Keep authentication on the project's connected Supabase client, retain the existing numeric OTP sign-up, sign-in, and recovery paths, and harden async loading/error handling.
-2. Audit navigation and utility pages for P2P transfers; remove only user-to-user transfer features, not bill payments or airtime-to-cash.
-3. Add an RLS-protected Otapay wholesale catalog and use a database-backed global percentage markup for dynamically priced utilities; add owner-only catalog controls to the admin console.
-4. Preserve the existing four utility tiles and Paystack wallet funding card; strengthen the `/admin` email gate and verify history remains read-only for users.
-5. Validate type/build output, error telemetry, and the key public/authenticated UI states.
+1. **Query caching:** Set sensible shared TanStack Query defaults so returning to dashboard tabs does not immediately refetch unchanged data. Keep profile data cached and deduplicate reads; replace the many per-component auth listeners in `useProfile` with one identity-aware listener. Clear user-specific cached data on sign-out/account change, and invalidate/update profile and transaction queries after funding, spending, withdrawals, and other balance-changing actions.
+2. **OTP authentication:** Make email sign-in OTP-only, keep the numeric six-digit verification and resend countdown, and use the connected project client for sign-up, sign-in, recovery, and PIN-change verification. Retain registered passkey sign-in as its separate biometric option. Keep loading, errors, and success feedback explicit; do not introduce magic-link screens.
+3. **Install-only PWA:** Keep the existing `.webmanifest` (the browser-supported manifest format), standalone display mode, Swift Top colors, and validated 192, 512, maskable, and Apple touch icons. Do not add a duplicate `manifest.json`. Retire the current offline cache behavior and safely unregister the old app-shell worker without deleting unrelated browser caches. Preserve the existing install prompt and iOS guidance.
+4. **Main-thread work:** Review the requested client data paths and remove only confirmed blocking work that materially affects those flows; keep small bounded UI transformations synchronous and avoid speculative rewrites.
 
 ## Technical details
-- Leave generated Supabase client and preview-auth storage files untouched. The preview broker shares session storage; Supabase API calls still target the configured project URL.
-- Add the catalog with explicit Data API grants, authenticated reads, owner-email-only writes, and service-role access.
-- Reuse `network_markups` for the global percentage row and existing `data_plans` for data bundle wholesale costs; retain existing configured local markups as fallback where no global rate exists.
-- Add focused tests for global percentage calculations.
+- Tune the per-router `QueryClient` defaults with a short freshness window and disable focus-triggered refetches; allow frequently changing or security-sensitive queries to override defaults. Preserve the existing per-request QueryClient construction.
+- Scope cached account data to the authenticated identity where appropriate. Centralize auth transition handling rather than registering listeners in every `useProfile` consumer.
+- Keep balances server-authoritative: refresh the cache after successful mutations and preserve current database/RLS behavior. No changes to wallet rules, admin permissions, provider calls, or receipt functionality.
+- Keep existing PWA asset paths and colors if verification confirms they match the manifest; use a one-release cleanup worker at the existing worker path to remove only Swift Top's named app-shell cache and unregister itself.
+
+## Validation
+- Check profile and balance queries remain cached across navigation, auth transitions do not leak cached user data, and successful balance-changing actions refresh the visible wallet.
+- Verify email sign-in and signup use six-digit codes, recovery and PIN verification remain code-based, and passkey sign-in remains available.
+- Verify the manifest parses, required icon files resolve with expected dimensions, standalone/colors remain correct, the install UI remains available, and the former app-shell worker no longer caches or serves the app offline.
+- Review diagnostics and run the existing focused checks for any behavior-specific tests.
