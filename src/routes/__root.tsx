@@ -12,11 +12,6 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
-import { BiometricLock } from "@/components/BiometricLock";
-import { BiometricSetupSheet } from "@/components/BiometricSetupSheet";
-import { OfflineQueueChip } from "@/components/OfflineQueueChip";
-import { ServiceWorkerManager } from "@/components/ServiceWorkerManager";
-
 
 function NotFoundComponent() {
   return (
@@ -82,11 +77,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { name: "theme-color", content: "#111a2e" },
-      { name: "apple-mobile-web-app-capable", content: "yes" },
-      { name: "apple-mobile-web-app-title", content: "Swift Top" },
-      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
-      { name: "mobile-web-app-capable", content: "yes" },
-
       { title: "Swift Top — Airtime, Data & Bill Payments" },
       {
         name: "description",
@@ -103,11 +93,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     links: [
       { rel: "stylesheet", href: appCss },
-      { rel: "manifest", href: "/manifest.webmanifest" },
-      { rel: "icon", type: "image/png", href: "/favicon.png" },
-      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
+      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
-
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
@@ -143,12 +130,7 @@ function RootComponent() {
       <div className="mx-auto min-h-screen w-full max-w-[480px] bg-background text-foreground">
         <Outlet />
       </div>
-      <BiometricLock />
-      <BiometricSetupSheet />
-      <OfflineQueueChip />
-      <ServiceWorkerManager />
       <Toaster theme="dark" position="top-center" />
     </QueryClientProvider>
   );
 }
-

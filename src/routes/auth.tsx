@@ -7,10 +7,6 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Zap } from "lucide-react";
-import { DIGITS_ONLY, otpErrorMessage } from "@/lib/otp-errors";
-import { offerBiometricSetup } from "@/components/BiometricSetupSheet";
-import { Fingerprint } from "lucide-react";
-import { passkeysSupported, signInWithPasskey } from "@/lib/passkeys";
 
 export const Route = createFileRoute("/auth")({
   component: AuthPage,
@@ -38,34 +34,10 @@ function AuthPage() {
   const [cooldown, setCooldown] = useState(0);
 
   useEffect(() => {
-    // Referral links look like /auth?ref=<user_id>; remember it until signup completes.
-    const params = new URLSearchParams(window.location.search);
-    const ref = params.get("ref");
-    if (ref) {
-      sessionStorage.setItem("st_ref", ref);
-      localStorage.setItem("st_ref", ref);
-    }
-    if (params.get("mode") === "signup") setMode("signup");
-  }, []);
-
-  useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) navigate({ to: "/" });
     });
   }, [navigate]);
-
-  /** Links the new account to whoever referred them (no-op when there is no ref). */
-  async function attachReferral() {
-    const ref = sessionStorage.getItem("st_ref") ?? localStorage.getItem("st_ref");
-    if (!ref) return;
-    try {
-      await supabase.rpc("attach_referrer", { _referrer: ref });
-      sessionStorage.removeItem("st_ref");
-      localStorage.removeItem("st_ref");
-    } catch {
-      // referral tracking must never block sign-in
-    }
-  }
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -79,7 +51,6 @@ function AuthPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) return toast.error(error.message);
-    offerBiometricSetup();
     toast.success("Welcome back");
     navigate({ to: "/" });
   }
@@ -90,34 +61,11 @@ function AuthPage() {
     setLoading(true);
     const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
     setLoading(false);
-    if (error) return toast.error(otpErrorMessage(error));
+    if (error) return toast.error(error.message);
     setOtpPurpose("signin");
     setMode("verify");
     setCooldown(60);
     toast.success("We sent a 6-digit sign-in code to your email");
-  }
-
-  /** Returning users: fingerprint / Face ID instead of a password or a code. */
-  async function handlePasskeySignIn() {
-    if (!passkeysSupported()) {
-      return toast.error("This device doesn't support Fingerprint / Face ID sign-in");
-    }
-    setLoading(true);
-    try {
-      await signInWithPasskey();
-      await attachReferral();
-      toast.success("Signed in");
-      navigate({ to: "/" });
-    } catch (e) {
-      const msg = (e as Error).message || "";
-      toast.error(
-        /not set up|couldn't find/i.test(msg)
-          ? "This device isn't set up yet — sign in once, then enable Fingerprint / Face ID."
-          : msg || "Fingerprint sign-in was cancelled",
-      );
-    } finally {
-      setLoading(false);
-    }
   }
 
   async function handleSignup(e: React.FormEvent) {
@@ -143,7 +91,7 @@ function AuthPage() {
 
   async function handleVerify(e: React.FormEvent) {
     e.preventDefault();
-    if (!/^\d{6}$/.test(otp)) return toast.error("Enter the 6-digit code");
+    if (otp.length !== 6) return toast.error("Enter the 6-digit code");
     setLoading(true);
     const { error } = await supabase.auth.verifyOtp({
       email,
@@ -151,21 +99,14 @@ function AuthPage() {
       type: otpPurpose === "signup" ? "signup" : "email",
     });
     setLoading(false);
-    if (error) {
-      setOtp("");
-      return toast.error(otpErrorMessage(error));
-    }
+    if (error) return toast.error(error.message);
     if (otpPurpose === "recover") {
       // Recovery: the user is now signed in, continue to the new-password step.
       setMode("reset");
     } else if (otpPurpose === "signin") {
-      await attachReferral();
-      offerBiometricSetup();
       toast.success("Signed in");
       navigate({ to: "/" });
     } else {
-      await attachReferral();
-      offerBiometricSetup();
       toast.success("Account verified — set your transaction PIN");
       navigate({ to: "/create-pin" });
     }
@@ -179,7 +120,7 @@ function AuthPage() {
       options: { shouldCreateUser: false },
     });
     setLoading(false);
-    if (error) return toast.error(otpErrorMessage(error));
+    if (error) return toast.error(error.message);
     setOtpPurpose("recover");
     setMode("verify");
     setCooldown(60);
@@ -203,13 +144,12 @@ function AuthPage() {
     if (otpPurpose === "signup") {
       const { error } = await supabase.auth.resend({ type: "signup", email });
       setLoading(false);
-      if (error) return toast.error(otpErrorMessage(error));
+      if (error) return toast.error(error.message);
     } else {
       const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
       setLoading(false);
-      if (error) return toast.error(otpErrorMessage(error));
+      if (error) return toast.error(error.message);
     }
-    setOtp("");
     setCooldown(60);
     toast.success("A fresh code was sent");
   }
@@ -249,16 +189,6 @@ function AuthPage() {
           >
             Sign in with a 6-digit email code
           </button>
-          <button
-            type="button"
-            onClick={() => { handlePasskeySignIn().catch(() => undefined); }}
-            disabled={loading}
-            className="flex min-h-12 items-center justify-center gap-2 rounded-full bg-primary/15 py-3 text-sm font-semibold text-primary disabled:opacity-60"
-          >
-            <Fingerprint className="h-4 w-4" />
-            Login with Biometrics
-          </button>
-
 
           <p className="mt-auto text-center text-sm text-muted-foreground">
             New to Swift Top?{" "}
@@ -316,7 +246,7 @@ function AuthPage() {
             </p>
           </div>
           <div className="flex justify-center">
-            <InputOTP maxLength={6} value={otp} onChange={setOtp} pattern={DIGITS_ONLY} inputMode="numeric" autoFocus>
+            <InputOTP maxLength={6} value={otp} onChange={setOtp}>
               <InputOTPGroup>
                 {[0, 1, 2, 3, 4, 5].map((i) => (
                   <InputOTPSlot key={i} index={i} className="h-12 w-11 text-lg" />

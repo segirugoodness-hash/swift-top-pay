@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { PinDialog } from "@/components/PinDialog";
 import { spendWallet } from "@/lib/purchase";
 import { useQueryClient } from "@tanstack/react-query";
-import { useBalanceGuard } from "@/hooks/useBalanceGuard";
 
 export const Route = createFileRoute("/_authenticated/education")({
   component: EducationPage,
@@ -26,27 +25,19 @@ function EducationPage() {
   const [pinOpen, setPinOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const qc = useQueryClient();
-  const { ensureBalance } = useBalanceGuard();
   const total = priceOf(exam) * (parseInt(qty || "0", 10) || 0);
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
     const n = parseInt(qty || "0", 10);
     if (!n || n < 1) return toast.error("Enter a valid quantity");
-    if (!ensureBalance(total)) return;
     setPinOpen(true);
   }
 
   async function confirm(pin: string) {
     const n = parseInt(qty || "0", 10);
     setBusy(true);
-    const ok = await spendWallet({
-      type: "education",
-      amount: total,
-      pin,
-      metadata: { exam, quantity: n },
-      otapayPayload: { exam, quantity: n, amount: total },
-    });
+    const ok = await spendWallet({ type: "education_pin", amount: total, pin, metadata: { exam, quantity: n } });
     setBusy(false);
     if (!ok) return;
     setPinOpen(false);

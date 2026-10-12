@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { KeyRound, MailCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { DIGITS_ONLY, otpErrorMessage } from "@/lib/otp-errors";
 
 type Step = "pins" | "otp";
 
@@ -42,7 +41,7 @@ export function ChangePinDialog({ open, onOpenChange }: { open: boolean; onOpenC
       setCooldown(60);
       toast.success("Security code sent to your email");
     } catch (e) {
-      toast.error(otpErrorMessage(e));
+      toast.error((e as Error).message);
     } finally {
       setBusy(false);
     }
@@ -62,18 +61,18 @@ export function ChangePinDialog({ open, onOpenChange }: { open: boolean; onOpenC
   }
 
   async function confirmChange() {
-    if (!/^\d{6}$/.test(code)) return toast.error("Enter the 6-digit code");
+    if (code.length !== 6) return toast.error("Enter the 6-digit code");
     setBusy(true);
     try {
       const { error: otpErr } = await supabase.auth.verifyOtp({ email, token: code, type: "email" });
-      if (otpErr) { setCode(""); throw otpErr; }
+      if (otpErr) throw otpErr;
       const { error } = await supabase.rpc("change_transaction_pin", { _current: current, _new: next });
       if (error) throw error;
       toast.success("Transaction PIN updated");
       reset();
       onOpenChange(false);
     } catch (e) {
-      toast.error(otpErrorMessage(e));
+      toast.error((e as Error).message);
     } finally {
       setBusy(false);
     }
@@ -114,7 +113,7 @@ export function ChangePinDialog({ open, onOpenChange }: { open: boolean; onOpenC
         ) : (
           <>
             <div className="mt-6 flex justify-center">
-              <InputOTP maxLength={6} value={code} onChange={setCode} pattern={DIGITS_ONLY} inputMode="numeric" autoFocus>
+              <InputOTP maxLength={6} value={code} onChange={setCode} autoFocus>
                 <InputOTPGroup>
                   {[0, 1, 2, 3, 4, 5].map((i) => (
                     <InputOTPSlot key={i} index={i} className="h-12 w-11 text-lg" />
@@ -148,7 +147,7 @@ function Field({ label, value, onChange }: { label: string; value: string; onCha
   return (
     <div className="flex flex-col items-center gap-2">
       <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
-      <InputOTP maxLength={4} value={value} onChange={onChange} pattern={DIGITS_ONLY} inputMode="numeric">
+      <InputOTP maxLength={4} value={value} onChange={onChange}>
         <InputOTPGroup>
           {[0, 1, 2, 3].map((i) => (
             <InputOTPSlot key={i} index={i} className="h-12 w-11 text-lg" />

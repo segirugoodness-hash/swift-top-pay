@@ -35,42 +35,6 @@ export type Database = {
         }
         Relationships: []
       }
-      admin_profits: {
-        Row: {
-          charged: number
-          cost: number
-          created_at: string
-          id: string
-          margin: number
-          reference: string | null
-          service: string
-          transaction_id: string | null
-          user_id: string | null
-        }
-        Insert: {
-          charged?: number
-          cost?: number
-          created_at?: string
-          id?: string
-          margin?: number
-          reference?: string | null
-          service: string
-          transaction_id?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          charged?: number
-          cost?: number
-          created_at?: string
-          id?: string
-          margin?: number
-          reference?: string | null
-          service?: string
-          transaction_id?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       admin_settings: {
         Row: {
           id: string
@@ -188,39 +152,6 @@ export type Database = {
         }
         Relationships: []
       }
-      passkey_challenges: {
-        Row: {
-          challenge: string
-          consumed_at: string | null
-          created_at: string
-          email: string | null
-          expires_at: string
-          id: string
-          purpose: string
-          user_id: string | null
-        }
-        Insert: {
-          challenge: string
-          consumed_at?: string | null
-          created_at?: string
-          email?: string | null
-          expires_at?: string
-          id?: string
-          purpose: string
-          user_id?: string | null
-        }
-        Update: {
-          challenge?: string
-          consumed_at?: string | null
-          created_at?: string
-          email?: string | null
-          expires_at?: string
-          id?: string
-          purpose?: string
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       paystack_events: {
         Row: {
           amount: number | null
@@ -266,7 +197,6 @@ export type Database = {
           full_name: string | null
           id: string
           phone: string | null
-          referred_by: string | null
           transaction_pin_hash: string | null
           updated_at: string
           verification_email: string | null
@@ -287,7 +217,6 @@ export type Database = {
           full_name?: string | null
           id: string
           phone?: string | null
-          referred_by?: string | null
           transaction_pin_hash?: string | null
           updated_at?: string
           verification_email?: string | null
@@ -308,7 +237,6 @@ export type Database = {
           full_name?: string | null
           id?: string
           phone?: string | null
-          referred_by?: string | null
           transaction_pin_hash?: string | null
           updated_at?: string
           verification_email?: string | null
@@ -317,39 +245,6 @@ export type Database = {
           verification_status?: string
           verification_submitted_at?: string | null
           wallet_balance?: number
-        }
-        Relationships: []
-      }
-      referrals: {
-        Row: {
-          created_at: string
-          id: string
-          referred_id: string
-          referrer_id: string
-          reward_amount: number
-          rewarded_at: string | null
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          referred_id: string
-          referrer_id: string
-          reward_amount?: number
-          rewarded_at?: string | null
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          referred_id?: string
-          referrer_id?: string
-          reward_amount?: number
-          rewarded_at?: string | null
-          status?: string
-          updated_at?: string
         }
         Relationships: []
       }
@@ -431,42 +326,6 @@ export type Database = {
         }
         Relationships: []
       }
-      user_passkeys: {
-        Row: {
-          counter: number
-          created_at: string
-          credential_id: string
-          device_label: string | null
-          id: string
-          last_used_at: string | null
-          public_key: string
-          transports: string[]
-          user_id: string
-        }
-        Insert: {
-          counter?: number
-          created_at?: string
-          credential_id: string
-          device_label?: string | null
-          id?: string
-          last_used_at?: string | null
-          public_key: string
-          transports?: string[]
-          user_id: string
-        }
-        Update: {
-          counter?: number
-          created_at?: string
-          credential_id?: string
-          device_label?: string | null
-          id?: string
-          last_used_at?: string | null
-          public_key?: string
-          transports?: string[]
-          user_id?: string
-        }
-        Relationships: []
-      }
       user_roles: {
         Row: {
           created_at: string
@@ -493,11 +352,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      admin_adjust_wallet: {
-        Args: { _amount: number; _reason: string; _user_id: string }
-        Returns: number
-      }
-      attach_referrer: { Args: { _referrer: string }; Returns: undefined }
       begin_vend: {
         Args: {
           _metadata: Json
@@ -541,26 +395,11 @@ export type Database = {
         }
         Returns: boolean
       }
-      is_super_admin: { Args: never; Returns: boolean }
       release_service_lock: {
         Args: { _service_type: string }
         Returns: undefined
       }
       set_transaction_pin: { Args: { _pin: string }; Returns: undefined }
-      settle_paystack_funding: {
-        Args: {
-          _amount: number
-          _event_id: string
-          _raw: Json
-          _reference: string
-          _user_id: string
-        }
-        Returns: boolean
-      }
-      settle_referral_reward: {
-        Args: { _funded_user: string }
-        Returns: undefined
-      }
       try_acquire_service_lock: {
         Args: { _service_type: string }
         Returns: boolean
@@ -584,12 +423,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -613,11 +452,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -638,11 +477,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -663,11 +502,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -680,11 +519,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never) = never,
+    : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

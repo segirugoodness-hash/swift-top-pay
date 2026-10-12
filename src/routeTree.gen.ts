@@ -9,7 +9,6 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SignupRouteImport } from './routes/signup'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
@@ -27,11 +26,6 @@ import { Route as ApiPublicWebhooksPaystackRouteImport } from './routes/api/publ
 import { Route as ApiPublicWebhooksOtapayA2cRouteImport } from './routes/api/public/webhooks/otapay-a2c'
 import { Route as ApiPublicHooksOtapaySyncRouteImport } from './routes/api/public/hooks/otapay-sync'
 
-const SignupRoute = SignupRouteImport.update({
-  id: '/signup',
-  path: '/signup',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -120,7 +114,6 @@ const ApiPublicHooksOtapaySyncRoute =
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
-  '/signup': typeof SignupRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/airtime': typeof AuthenticatedAirtimeRoute
   '/airtime-to-cash': typeof AuthenticatedAirtimeToCashRoute
@@ -137,7 +130,6 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
-  '/signup': typeof SignupRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/airtime': typeof AuthenticatedAirtimeRoute
   '/airtime-to-cash': typeof AuthenticatedAirtimeToCashRoute
@@ -157,7 +149,6 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
-  '/signup': typeof SignupRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/airtime': typeof AuthenticatedAirtimeRoute
   '/_authenticated/airtime-to-cash': typeof AuthenticatedAirtimeToCashRoute
@@ -178,7 +169,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
-    | '/signup'
     | '/admin'
     | '/airtime'
     | '/airtime-to-cash'
@@ -195,7 +185,6 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
-    | '/signup'
     | '/admin'
     | '/airtime'
     | '/airtime-to-cash'
@@ -214,7 +203,6 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_authenticated'
     | '/auth'
-    | '/signup'
     | '/_authenticated/admin'
     | '/_authenticated/airtime'
     | '/_authenticated/airtime-to-cash'
@@ -234,7 +222,6 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
-  SignupRoute: typeof SignupRoute
   ApiPublicHooksOtapaySyncRoute: typeof ApiPublicHooksOtapaySyncRoute
   ApiPublicWebhooksOtapayA2cRoute: typeof ApiPublicWebhooksOtapayA2cRoute
   ApiPublicWebhooksPaystackRoute: typeof ApiPublicWebhooksPaystackRoute
@@ -242,13 +229,6 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/signup': {
-      id: '/signup'
-      path: '/signup'
-      fullPath: '/signup'
-      preLoaderRoute: typeof SignupRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -398,7 +378,6 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
-  SignupRoute: SignupRoute,
   ApiPublicHooksOtapaySyncRoute: ApiPublicHooksOtapaySyncRoute,
   ApiPublicWebhooksOtapayA2cRoute: ApiPublicWebhooksOtapayA2cRoute,
   ApiPublicWebhooksPaystackRoute: ApiPublicWebhooksPaystackRoute,
@@ -406,13 +385,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

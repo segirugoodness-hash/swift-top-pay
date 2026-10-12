@@ -5,14 +5,26 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useProfile } from "@/hooks/useProfile";
-import { supabase } from "@/integrations/supabase/client";
-
 import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Copy, ShieldCheck, Building2, CreditCard, Sparkles } from "lucide-react";
 import { initPaystackFunding, upgradeToVerified } from "@/lib/paystack.functions";
-import { openPaystackCheckout } from "@/lib/paystack-inline";
 import { TempTransferPanel } from "@/components/TempTransferPanel";
+
+
+/** Lazy loader for Paystack Inline script. */
+function loadPaystack(): Promise<{ setup: (opts: Record<string, unknown>) => { openIframe: () => void } }> {
+  return new Promise((resolve, reject) => {
+    const w = window as unknown as { PaystackPop?: unknown };
+    if (w.PaystackPop) return resolve(w.PaystackPop as never);
+    const s = document.createElement("script");
+    s.src = "https://js.paystack.co/v1/inline.js";
+    s.async = true;
+    s.onload = () => resolve((window as unknown as { PaystackPop: never }).PaystackPop);
+    s.onerror = () => reject(new Error("Failed to load Paystack"));
+    document.body.appendChild(s);
+  });
+}
 
 export function FundWalletDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const { data: profile } = useProfile();
@@ -22,14 +34,14 @@ export function FundWalletDialog({ open, onOpenChange }: { open: boolean; onOpen
   const TABS = [
     { key: "starter", label: "Pay now" },
     { key: "transfer", label: "Bank transfer" },
-    { key: "upgrade", label: "Dedicated account" },
+    { key: "upgrade", label: "Verify" },
   ] as const;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm rounded-2xl">
         {verified ? (
-          <DedicatedAccountView profile={profile} />
+          <DedicatedAccountView profile={profile!} />
         ) : (
           <>
             <DialogHeader>
@@ -67,65 +79,38 @@ export function FundWalletDialog({ open, onOpenChange }: { open: boolean; onOpen
 function PaystackFlow({ onClose }: { onClose: () => void }) {
   const [amount, setAmount] = useState("");
   const [busy, setBusy] = useState(false);
-  const [email, setEmail] = useState("");
-  const [needEmail, setNeedEmail] = useState(false);
   const init = useServerFn(initPaystackFunding);
-  const { data: profile } = useProfile();
   const qc = useQueryClient();
-
-  const validEmail = (e: string) => /.+@.+\..+/.test(e.trim());
-
-  /** Resolves the email Paystack should charge; prompts inline when the account has none. */
-  async function resolveEmail(): Promise<string | null> {
-    if (validEmail(email)) return email.trim();
-    try {
-      const { data } = await supabase.auth.getUser();
-      const accountEmail = data.user?.email ?? "";
-      if (validEmail(accountEmail)) return accountEmail;
-    } catch {
-      // ignore — fall through to the saved/prompted address
-    }
-    const saved = profile?.verification_email ?? "";
-    if (validEmail(saved)) return saved;
-    setNeedEmail(true);
-    toast.message("Enter an email address for your payment receipt");
-    return null;
-  }
 
   async function pay(e: React.FormEvent) {
     e.preventDefault();
     const amt = parseInt(amount, 10);
     if (!amt || amt < 100) return toast.error("Enter at least ₦100");
-    const payerEmail = await resolveEmail();
-    if (!payerEmail) return;
     setBusy(true);
     try {
-      // Reuse this address next time so we never prompt twice.
-      if (needEmail && profile?.id) {
-        await supabase.from("profiles").update({ verification_email: payerEmail }).eq("id", profile.id);
+      const { access_code, public_key, authorization_url } = await init({ data: { amount: amt } });
+      const Paystack = await loadPaystack().catch(() => null);
+      if (Paystack && public_key) {
+        const handler = Paystack.setup({
+          key: public_key,
+          access_code,
+          onSuccess: () => {
+            toast.success("Payment received — wallet crediting shortly");
+            qc.invalidateQueries({ queryKey: ["profile"] });
+            onClose();
+          },
+          onCancel: () => toast.message("Payment cancelled"),
+        });
+        handler.openIframe();
+      } else {
+        window.location.href = authorization_url;
       }
-      const { access_code, public_key, authorization_url, email: chargedEmail } = await init({
-        data: { amount: amt, email: payerEmail },
-      });
-      await openPaystackCheckout({
-        publicKey: public_key,
-        accessCode: access_code,
-        email: chargedEmail || payerEmail,
-        authorizationUrl: authorization_url,
-        onSuccess: () => {
-          toast.success("Payment received — wallet crediting shortly");
-          qc.invalidateQueries({ queryKey: ["profile"] });
-          onClose();
-        },
-        onCancel: () => toast.message("Payment cancelled"),
-      });
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
       setBusy(false);
     }
   }
-
 
   return (
     <form onSubmit={pay} className="mt-3 flex flex-col gap-4">
@@ -151,23 +136,6 @@ function PaystackFlow({ onClose }: { onClose: () => void }) {
           ))}
         </div>
       </div>
-      {needEmail && (
-        <div>
-          <Label htmlFor="payer-email" className="mb-2 block text-sm">Email for receipt</Label>
-          <Input
-            id="payer-email"
-            type="email"
-            inputMode="email"
-            placeholder="you@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            Your account has no email on file — Paystack needs one to issue a receipt.
-          </p>
-        </div>
-      )}
-
       <Button type="submit" disabled={busy} className="h-11 rounded-full">
         <CreditCard className="mr-2 h-4 w-4" />
         {busy ? "Preparing…" : "Continue to Paystack"}
@@ -197,10 +165,14 @@ function VerifiedUpgradeFlow() {
     if (!firstName.trim() || !lastName.trim()) return toast.error("Enter your legal first and last name");
     setBusy(true);
     try {
-      await upgrade({ data: { bvn, first_name: firstName.trim(), last_name: lastName.trim() } });
+      const r = await upgrade({ data: { bvn, first_name: firstName.trim(), last_name: lastName.trim() } });
       qc.invalidateQueries({ queryKey: ["profile"] });
-      setPending(true);
-      toast.success("BVN submitted successfully");
+      if (r.status === "verified") {
+        toast.success("Verified — your dedicated bank account is ready");
+      } else {
+        setPending(true);
+        toast.success("Verification submitted — details safely saved");
+      }
     } catch (err) {
       // Fallback safety net — should be rare because the server always intercepts.
       setPending(true);
@@ -216,11 +188,10 @@ function VerifiedUpgradeFlow() {
         <div className="rounded-2xl border border-primary/40 bg-gradient-to-br from-primary/15 to-primary/5 p-4">
           <div className="mb-2 flex items-center gap-2 text-primary">
             <ShieldCheck className="h-5 w-5" />
-            <p className="text-sm font-bold">BVN submitted successfully</p>
+            <p className="text-sm font-bold">Verification is being processed by Paystack</p>
           </div>
           <p className="text-xs text-muted-foreground">
-Your BVN has been submitted successfully. Your personal virtual account is being processed and will be
-            assigned to your dashboard shortly.
+            Your dedicated virtual account number will be issued shortly. We'll notify you the moment it's ready.
           </p>
         </div>
         <div className="rounded-2xl border border-border bg-surface p-4">
@@ -262,12 +233,8 @@ Your BVN has been submitted successfully. Your personal virtual account is being
         Dial *565*0# on your registered SIM to retrieve your BVN. It is encrypted and only used to verify identity.
       </p>
       <Button type="submit" disabled={busy} className="h-11 rounded-full">
-        {busy ? "Submitting…" : "Submit BVN for verification"}
+        {busy ? "Verifying…" : "Verify & issue account"}
       </Button>
-      <p className="text-[11px] text-muted-foreground">
-        Dedicated accounts are issued after review. Meanwhile use <span className="font-semibold text-foreground">Pay now</span>{" "}
-        to fund instantly by card, USSD or transfer.
-      </p>
     </form>
   );
 }
