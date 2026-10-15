@@ -1,0 +1,25 @@
+# Swift Top: secure, fast mobile banking experience
+
+## Goal
+Make the existing Swift Top app reliable and fast on phones while preserving its current look and keeping sign-in, payments, pricing, and wallet records correctly connected to the configured backend.
+
+## Work
+1. **Repair OTP and form states.** Keep six-digit email codes for sign-in, account verification, recovery, and PIN changes. Correct sign-up validation so it does not require an unentered password or leave the screen stuck loading; make resend timers, loading, success, errors, and repeated submissions consistent. Preserve the connected auth client and its preview session support.
+2. **Make transaction pricing and execution server-authoritative.** Trace Otapay catalogue/wholesale data for each supported service. Have the server validate the selected service and beneficiary, resolve its current wholesale price and configured markup, verify balance and PIN, and atomically record/debit/refund and log the resulting profit. Do not accept a client-submitted wholesale amount or vendor endpoint as authority. Keep provider keys server-side. Use stable transaction references and safe timeouts so delayed or retried requests cannot double-charge; retain the current screens and displayed quote behavior.
+3. **Add the chosen second payment check.** Keep the 4-digit PIN and require a separate, server-verified passkey/biometric confirmation for a transaction when the user enables it. Bind each short-lived, single-use confirmation to that exact payment. Remove the local clear-text PIN shortcut; keep passkeys for sign-in and the installed-app biometric option. A device without enabled biometrics continues with the existing PIN flow; an enabled second factor must not be silently bypassed.
+4. **Harden caching and retry behavior.** Keep shared profile caching and the single root auth-transition listener. Tune refreshes around wallet changes and ensure funding, purchases, withdrawals, vault transfers, and auth changes invalidate the relevant views. Review confirmed blocking work rather than broadly rewriting small calculations. Make queued retries idempotent and do not persist a raw PIN or replay a payment without the required confirmation.
+5. **Keep installability without offline app-shell caching.** Preserve the current install action, standalone manifest, and existing icon set. Retire offline shell caching with a one-time cleanup at the existing worker path, deleting only Swift Top's cache and unregistering itself; do not erase unrelated browser caches or add a duplicate manifest.
+6. **Preserve existing product and access rules.** Do not redesign the dashboard or alter wallet, referral, vault, or admin rules beyond what is needed for the fixes. Keep the admin console and ledger restricted by server-side checks to `segiruabdulfathi558@gmail.com`, and keep history read-only to users.
+
+## Technical details
+- Keep using the generated connected auth client; do not edit generated client files or bypass its preview session bridge. Verify the configured email-code flow sends numeric tokens; no magic-link UI is introduced.
+- The current data catalogue already has Otapay-synced wholesale plans; other airtime and bill prices have local assumptions. Confirm which Otapay responses provide actual wholesale costs before making those costs authoritative. If the provider does not return a cost for a service, use only its existing approved pricing rule—never invent a wholesale value.
+- Use authenticated TanStack server functions for app-internal vendor operations, runtime validation for their inputs, and the existing atomic database transaction path for balance and ledger changes. Any new database records or RPC checks must be owner-scoped, granted narrowly, and protected by RLS; secrets remain server-only.
+- Payment passkey confirmation must be persisted and consumed server-side against the exact transaction intent. Device-local WebAuthn alone is not authorization. Keep the existing PIN check as an independent requirement.
+- Keep install-only PWA behavior: `/sw.js` is replaced in place for cleanup, preview/dev registration stays disabled, and the supported manifest remains `manifest.webmanifest`.
+
+## Validation
+- Exercise sign-in, sign-up, recovery, PIN-change OTP screens, resend countdowns, validation failures, and loading recovery.
+- Verify server-side price/beneficiary validation, PIN and optional biometric gating, duplicate-request handling, wallet refresh, refunds, and admin profit/ledger records. Use safe non-spend checks or a provider sandbox; do not make a real purchase during verification.
+- Check install prompt behavior, standalone metadata, icon responses, and that the cleanup worker removes only Swift Top's cache and unregisters.
+- Review current build/runtime diagnostics, run relevant existing tests, and check the main phone and desktop layouts without changing the established dashboard structure.
