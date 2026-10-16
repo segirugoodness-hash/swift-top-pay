@@ -1,6 +1,9 @@
 # Swift Top roadmap
 
-- [ ] Reduce repeat client queries; centralize auth cache invalidation and refresh balances after changes
-- [ ] Use numeric email OTP for sign-in, sign-up, recovery, and PIN verification; keep passkeys as a separate option
-- [ ] Retain install prompts and validated PWA metadata while retiring offline app-shell caching
-- [ ] Verify phone-install assets, auth UI states, query behavior, and preview diagnostics
+- [ ] Repair OTP validation and form loading/error states
+- [ ] Resolve service pricing and vendor requests on the server; make vend requests safely idempotent
+- [ ] Add optional server-verified biometric approval alongside the 4-digit payment PIN
+- [ ] Remove persisted PINs and unsafe automatic replay of wallet purchases
+- [ ] Keep shared query caching and refresh wallet/profile/history after changes
+- [ ] Preserve install metadata while cleaning up the existing offline app-shell worker
+- [ ] Verify auth, payment safeguards, install assets, diagnostics, and relevant tests

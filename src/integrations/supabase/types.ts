@@ -196,7 +196,9 @@ export type Database = {
           email: string | null
           expires_at: string
           id: string
+          intent_hash: string | null
           purpose: string
+          used_at: string | null
           user_id: string | null
         }
         Insert: {
@@ -206,7 +208,9 @@ export type Database = {
           email?: string | null
           expires_at?: string
           id?: string
+          intent_hash?: string | null
           purpose: string
+          used_at?: string | null
           user_id?: string | null
         }
         Update: {
@@ -216,7 +220,9 @@ export type Database = {
           email?: string | null
           expires_at?: string
           id?: string
+          intent_hash?: string | null
           purpose?: string
+          used_at?: string | null
           user_id?: string | null
         }
         Relationships: []
@@ -257,6 +263,7 @@ export type Database = {
       profiles: {
         Row: {
           account_tier: string
+          biometric_transactions_enabled: boolean
           bvn: string | null
           bvn_verified: boolean
           created_at: string
@@ -281,6 +288,7 @@ export type Database = {
         }
         Insert: {
           account_tier?: string
+          biometric_transactions_enabled?: boolean
           bvn?: string | null
           bvn_verified?: boolean
           created_at?: string
@@ -305,6 +313,7 @@ export type Database = {
         }
         Update: {
           account_tier?: string
+          biometric_transactions_enabled?: boolean
           bvn?: string | null
           bvn_verified?: boolean
           created_at?: string

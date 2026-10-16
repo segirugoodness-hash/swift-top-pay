@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1792142010622,
+      "tag": "0000_secure_transaction_biometric_approvals",
+      "breakpoints": true
+    }
+  ]
+}
