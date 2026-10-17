@@ -1,140 +1,161 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { resolveVendQuote } from "@/lib/vend-pricing.server";
+import { vendIntentString, type VendService } from "@/lib/vend-intent.server";
 
-/**
- * Live vend engine.
- * Flow (atomic in the DB layer):
- *   1. acquire 45s service lock (anti-duplicate)
- *   2. begin_vend: verify PIN, debit wallet, insert 'pending' ledger row
- *   3. call Otapay
- *   4. complete_vend (routes markup profit to admin_earnings) OR fail_vend (auto-refund)
- *   5. release lock
- */
+const SERVICE_TYPES = new Set<VendService>(["airtime", "data", "electricity", "cable", "education"]);
+
 export const vendPurchase = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(
-    (input: {
-      service: string;                 // 'data' | 'airtime' | 'electricity' | 'cable' | 'education'
-      retail: number;                  // amount to debit
-      wholesale: number;               // otapay cost — used for profit calc
-      pin: string;
-      metadata: Record<string, unknown>;
-      otapayEndpoint: string;          // e.g. '/v1/vend/data'
-      otapayPayload: Record<string, unknown>;
-    }) => input,
-  )
+  .inputValidator((input: {
+    service: VendService;
+    details: Record<string, unknown>;
+    pin: string;
+    idempotencyKey: string;
+    biometricChallengeId?: string;
+  }) => {
+    if (!input || !SERVICE_TYPES.has(input.service)) throw new Error("Unsupported purchase type");
+    if (typeof input.pin !== "string" || !/^\d{4}$/.test(input.pin)) throw new Error("Enter your 4-digit transaction PIN");
+    if (!input.details || typeof input.details !== "object' || Array.isArray(input.details)) throw new Error("Invalid purchase details");
+    return input;
+  })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    // 1. Anti-duplicate lock
+    const quote = await resolveVendQuote(supabase, data.service, data.details);
+    const intentHash = await hashText(vendIntentString(data.service, quote.details, data.idempotencyKey));
+
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("wallet_balance, biometric_transactions_enabled")
+      .eq("id", userId)
+      .maybeSingle();
+    if (profileError || !profile) throw new Error("Could not verify your wallet");
+    if (Number(profile.wallet_balance) < quote.retail) throw new Error("Insufficient balance");
+
+    let biometricChallengeId: string | null = null;
+    if (profile.biometric_transactions_enabled) {
+      if (!data.biometricChallengeId) throw new Error("Confirm this payment with your device biometric");
+      const { data: challenge, error: challengeError } = await supabaseAdmin
+        .from("passkey_challenges")
+        .select("id, purpose, user_id, intent_hash, expires_at, consumed_at, used_at")
+        .eq("id", data.biometricChallengeId)
+        .maybeSingle();
+      if (challengeError || !challenge || challenge.purpose !== "payment" || challenge.user_id !== userId ||
+          challenge.intent_hash !== intentHash || !challenge.consumed_at || challenge.used_at ||
+          new Date(challenge.expires_at).getTime() <= Date.now()) {
+        throw new Error("Biometric approval is missing, expired, or for another payment");
+      }
+      biometricChallengeId = challenge.id;
+    } else if (data.biometricChallengeId) {
+      throw new Error("Unexpected biometric approval");
+    }
+
     const { data: acquired, error: lockErr } = await supabase.rpc("try_acquire_service_lock", {
       _service_type: data.service,
     });
     if (lockErr) throw new Error(lockErr.message);
-    if (!acquired) {
-      throw new Error("Transaction processing. Please wait for confirmation to avoid duplicate charges.");
-    }
+    if (!acquired) throw new Error("Transaction processing. Please wait for confirmation to avoid duplicate charges.");
 
-    const reference = `stv_${data.service}_${userId.slice(0, 8)}_${Date.now()}`;
-
+    const reference = `stv_${data.service}_${userId.slice(0, 8)}_${data.idempotencyKey}`;
+    let txnId: string | null = null;
     try {
-      // 2. Begin vend — verifies PIN, debits, creates pending row
-      const { data: txnId, error: beginErr } = await supabase.rpc("begin_vend", {
+      const { data: newTxnId, error: beginErr } = await supabaseAdmin.rpc("begin_vend_authorized", {
+        _user_id: userId,
         _type: data.service,
-        _retail: data.retail,
-        _wholesale: data.wholesale,
+        _retail: quote.retail,
+        _wholesale: quote.wholesale,
         _pin: data.pin,
         _reference: reference,
-        _metadata: data.metadata as never,
+        _metadata: quote.metadata as never,
+        _biometric_challenge_id: biometricChallengeId,
+        _intent_hash: biometricChallengeId ? intentHash : null,
       });
       if (beginErr) throw new Error(beginErr.message);
-      const txn_id = txnId as unknown as string;
+      txnId = newTxnId;
 
-      // 3. Load Otapay config
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { data: cfgRow } = await supabaseAdmin
+      const { data: cfgRow, error: cfgError } = await supabaseAdmin
         .from("system_settings").select("value").eq("key", "otapay").maybeSingle();
+      if (cfgError) throw new Error("Could not load payment provider settings");
       const cfg = (cfgRow?.value ?? {}) as { secret_key?: string; public_key?: string; base_url?: string };
-
-      if (!cfg.secret_key) {
-        // Refund immediately if provider not configured
-        await supabase.rpc("fail_vend", { _txn_id: txn_id, _error: "Otapay not configured" });
-        throw new Error("Payment provider not configured yet. Your wallet has been refunded.");
-      }
+      if (!cfg.secret_key) throw new Error("Payment provider is not configured yet");
 
       const baseUrl = (cfg.base_url ?? "https://api.otapay.ng").replace(/\/$/, "");
+      const providerUrl = new URL(quote.endpoint, baseUrl);
+      if (providerUrl.origin !== new URL(baseUrl).origin) throw new Error("Invalid provider destination");
 
-      // 4. Fire outbound call with a 25s hard timeout
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 25_000);
       let providerRef: string | null = null;
       try {
-        const res = await fetch(`${baseUrl}${data.otapayEndpoint}`, {
+        const response = await fetch(providerUrl, {
           method: "POST",
           signal: controller.signal,
           headers: {
-            "Authorization": `Bearer ${cfg.secret_key}`,
+            Authorization: `Bearer ${cfg.secret_key}`,
             "Content-Type": "application/json",
             "X-Public-Key": cfg.public_key ?? "",
             "X-Reference": reference,
           },
-          body: JSON.stringify({ ...data.otapayPayload, reference }),
+          body: JSON.stringify({ ...quote.providerPayload, reference }),
         });
-        clearTimeout(timer);
-        const raw = await res.text();
-        let json: Record<string, unknown> = {};
-        try { json = JSON.parse(raw); } catch { /* leave empty */ }
-        if (!res.ok || json.status === false || json.success === false) {
-          const msg = String(json.message ?? json.error ?? raw.slice(0, 160) ?? `Otapay ${res.status}`);
-          await supabase.rpc("fail_vend", { _txn_id: txn_id, _error: msg });
-          throw new Error(`Vend failed: ${msg}`);
+        const raw = await response.text();
+        let body: Record<string, unknown> = {};
+        try { body = JSON.parse(raw) as Record<string, unknown>; } catch { /* Provider returned non-JSON */ }
+        if (!response.ok || body.status === false || body.success === false) {
+          const message = String(body.message ?? body.error ?? raw.slice(0, 160) ?? `Provider ${response.status}`);
+          throw new Error(message);
         }
-        providerRef = String(json.reference ?? json.transaction_id ?? json.request_id ?? "") || null;
-      } catch (e) {
+        providerRef = String(body.reference ?? body.transaction_id ?? body.request_id ?? "") || null;
+      } finally {
         clearTimeout(timer);
-        const msg = e instanceof Error ? e.message : "Network error";
-        // fail_vend is idempotent (skips if already non-pending)
-        await supabase.rpc("fail_vend", { _txn_id: txn_id, _error: msg });
-        throw new Error(`Vend failed: ${msg}. Your wallet has been refunded.`);
       }
 
-      // 5. Success — route profit
-      const { error: doneErr } = await supabase.rpc("complete_vend", {
-        _txn_id: txn_id,
-        _provider_ref: providerRef ?? undefined,
+      const { error: completeError } = await supabaseAdmin.rpc("complete_vend", {
+        _txn_id: txnId,
+        _provider_ref: providerRef,
       });
-      if (doneErr) throw new Error(doneErr.message);
+      if (completeError) throw new Error("Provider completed the purchase; settlement is being reconciled");
 
-      // Receipt email — best effort, never blocks or fails the purchase.
       const email = context.claims["email"] as string | undefined;
       if (email) {
         try {
           const { sendEmail, receiptHtml } = await import("@/lib/email.server");
           await sendEmail({
             to: email,
-            subject: `Swift Top receipt — ${data.service} ₦${data.retail.toLocaleString()}`,
+            subject: `Swift Top receipt — ${data.service} ₦${quote.retail.toLocaleString()}`,
             html: receiptHtml({
               service: data.service,
-              amount: data.retail,
+              amount: quote.retail,
               reference: providerRef ?? reference,
-              detail: Object.entries(data.metadata)
-                .filter(([, v]) => typeof v === "string" || typeof v === "number")
-                .map(([k, v]) => `${k}: ${String(v)}`)
+              detail: Object.entries(quote.metadata)
+                .filter(([, value]) => typeof value === "string" || typeof value === "number")
+                .map(([key, value]) => `${key}: ${String(value)}`)
                 .join(" · "),
             }),
           });
         } catch {
-          // email delivery problems must never affect the wallet or the ledger
+          // Receipt delivery is best effort and never reverses a successful vend.
         }
       }
-
-      return { ok: true, reference, txn_id, provider_ref: providerRef };
+      return { ok: true, reference, txn_id: txnId, provider_ref: providerRef, charged: quote.retail };
+    } catch (error) {
+      if (txnId) {
+        const message = error instanceof Error ? error.message : "Payment failed";
+        await supabaseAdmin.rpc("fail_vend", { _txn_id: txnId, _error: message.slice(0, 300) });
+      }
+      throw error;
     } finally {
       await supabase.rpc("release_service_lock", { _service_type: data.service });
     }
   });
 
-/** Read admin earnings — owner only (RLS enforces). */
+async function hashText(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
 export const getAdminEarnings = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
