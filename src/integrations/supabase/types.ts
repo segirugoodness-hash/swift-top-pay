@@ -551,6 +551,20 @@ export type Database = {
         }
         Returns: string
       }
+      begin_vend_authorized: {
+        Args: {
+          _biometric_challenge_id: string
+          _intent_hash: string
+          _metadata: Json
+          _pin: string
+          _reference: string
+          _retail: number
+          _type: string
+          _user_id: string
+          _wholesale: number
+        }
+        Returns: string
+      }
       change_transaction_pin: {
         Args: { _current: string; _new: string }
         Returns: undefined
@@ -586,6 +600,10 @@ export type Database = {
       is_super_admin: { Args: never; Returns: boolean }
       release_service_lock: {
         Args: { _service_type: string }
+        Returns: undefined
+      }
+      set_biometric_transactions_enabled: {
+        Args: { _enabled: boolean }
         Returns: undefined
       }
       set_transaction_pin: { Args: { _pin: string }; Returns: undefined }
