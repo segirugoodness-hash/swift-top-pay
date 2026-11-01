@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { resolveVendQuote } from "@/lib/vend-pricing.server";
+import { vendIntentString, type VendService } from "@/lib/vend-intent.server";
 
 /**
  * Server-verified passkeys (Fingerprint / Face ID sign-in).
@@ -11,6 +13,11 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
  */
 
 type WebAuthnOrigin = { rpID: string; origin: string };
+
+async function hashText(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
 
 function requestOrigin(): WebAuthnOrigin {
   const req = getRequest();
@@ -215,6 +222,107 @@ export const finishPasskeyLogin = createServerFn({ method: "POST" })
     }
 
     return { email: userRes.user.email, tokenHash: link.properties.hashed_token };
+  });
+
+/** Creates a device challenge bound to the exact server-resolved purchase quote. */
+export const startPaymentPasskey = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: {
+    service: VendService;
+    details: Record<string, unknown>;
+    expectedRetail: number;
+    idempotencyKey: string;
+  }) => input)
+  .handler(async ({ data, context }) => {
+    const { data: profile, error: profileError } = await context.supabase
+      .from("profiles").select("biometric_transactions_enabled").eq("id", context.userId).maybeSingle();
+    if (profileError || !profile?.biometric_transactions_enabled) throw new Error("Payment biometrics are not enabled");
+
+    const { data: credentials, error: credentialsError } = await context.supabase
+      .from("user_passkeys")
+      .select("credential_id, transports")
+      .eq("user_id", context.userId);
+    if (credentialsError || !credentials?.length) throw new Error("Set up a passkey on this device first");
+
+    const quote = await resolveVendQuote(context.supabase, data.service, data.details);
+    if (quote.retail !== data.expectedRetail) throw new Error("Price changed. Review the updated price before paying.");
+    const intentHash = await hashText(vendIntentString(data.service, data.details, data.idempotencyKey, quote.retail));
+    const { generateAuthenticationOptions } = await import("@simplewebauthn/server");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { rpID } = requestOrigin();
+    const options = await generateAuthenticationOptions({
+      rpID,
+      userVerification: "required",
+      allowCredentials: credentials.map((credential) => ({
+        id: credential.credential_id,
+        transports: (credential.transports ?? []) as never,
+      })),
+    });
+    const { data: challenge, error } = await supabaseAdmin.from("passkey_challenges").insert({
+      user_id: context.userId,
+      email: (context.claims["email"] as string | undefined) ?? null,
+      purpose: "payment",
+      challenge: options.challenge,
+      intent_hash: intentHash,
+    }).select("id").single();
+    if (error) throw new Error("Could not start biometric payment approval");
+    return { challengeId: challenge.id, optionsJson: JSON.stringify(options) };
+  });
+
+/** Verifies an assertion and consumes the challenge once; vend RPC consumes approval once more. */
+export const finishPaymentPasskey = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { challengeId: string; response: { id: string } & Record<string, unknown> }) => input)
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { verifyAuthenticationResponse } = await import("@simplewebauthn/server");
+    const { rpID, origin } = requestOrigin();
+    const { data: challenge, error: challengeError } = await supabaseAdmin
+      .from("passkey_challenges")
+      .select("id, challenge, purpose, user_id, expires_at, consumed_at, used_at, intent_hash")
+      .eq("id", data.challengeId)
+      .maybeSingle();
+    if (challengeError || !challenge || challenge.purpose !== "payment" || challenge.user_id !== context.userId ||
+        !challenge.intent_hash || challenge.consumed_at || challenge.used_at ||
+        new Date(challenge.expires_at).getTime() <= Date.now()) {
+      throw new Error("That biometric payment request expired. Please try again.");
+    }
+
+    const { data: credential, error: credentialError } = await supabaseAdmin
+      .from("user_passkeys")
+      .select("id, user_id, credential_id, public_key, counter, transports")
+      .eq("user_id", context.userId)
+      .eq("credential_id", data.response.id)
+      .maybeSingle();
+    if (credentialError || !credential) throw new Error("This device is not registered for biometric approval");
+
+    const verification = await verifyAuthenticationResponse({
+      response: data.response as never,
+      expectedChallenge: challenge.challenge,
+      expectedOrigin: origin,
+      expectedRPID: rpID,
+      requireUserVerification: true,
+      credential: {
+        id: credential.credential_id,
+        publicKey: new Uint8Array(Buffer.from(credential.public_key, "base64")),
+        counter: Number(credential.counter),
+        transports: (credential.transports ?? []) as never,
+      },
+    });
+    if (!verification.verified) throw new Error("Fingerprint check failed. Please try again.");
+
+    const { error: counterError } = await supabaseAdmin.from("user_passkeys").update({
+      counter: verification.authenticationInfo.newCounter,
+      last_used_at: new Date().toISOString(),
+    }).eq("id", credential.id);
+    if (counterError) throw new Error("Could not complete biometric verification");
+
+    const { data: consumed, error: consumeError } = await supabaseAdmin.from("passkey_challenges")
+      .update({ consumed_at: new Date().toISOString() })
+      .eq("id", challenge.id).eq("user_id", context.userId).is("consumed_at", null).is("used_at", null)
+      .select("id").maybeSingle();
+    if (consumeError || !consumed) throw new Error("That biometric approval was already used");
+    return { challengeId: consumed.id };
   });
 
 /** The devices a signed-in user has enabled. */
