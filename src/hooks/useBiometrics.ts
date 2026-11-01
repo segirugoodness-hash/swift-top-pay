@@ -1,124 +1,97 @@
 import { useCallback, useEffect, useState } from "react";
+import {
+  setBiometricTransactionsEnabled,
+  getBiometricTransactionsEnabled,
+} from "@/lib/biometrics.functions";
 
-/**
- * Device-local biometric unlock (WebAuthn platform authenticator: Fingerprint / Face ID).
- *
- * Scope on purpose: this is a *local device* gate, not a server auth factor.
- * The Supabase session and the server-side PIN check remain the real security boundary —
- * a successful biometric assertion only unlocks values already stored on this device.
- */
-const CRED_KEY = "st_bio_cred";
-const PIN_KEY = "st_bio_pin";
-const UNLOCK_KEY = "st_bio_unlocked";
+export const BIO_KEYS = { CRED_KEY: "st_bio_cred", PIN_KEY: "st_bio_pin", UNLOCK_KEY: "st_bio_unlocked" };
 
-function randomChallenge(): Uint8Array<ArrayBuffer> {
-  const b = new Uint8Array(new ArrayBuffer(32));
-  crypto.getRandomValues(b);
-  return b;
+function localChallenge(): Uint8Array<ArrayBuffer> {
+  const bytes = new Uint8Array(new ArrayBuffer(32));
+  crypto.getRandomValues(bytes);
+  return bytes;
 }
 
-function toB64(buf: ArrayBuffer): string {
-  return btoa(String.fromCharCode(...new Uint8Array(buf)));
+function decodeCredentialId(value: string): Uint8Array<ArrayBuffer> {
+  const base64 = value.replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(base64 + "=".repeat((4 - base64.length % 4) % 4));
+  const bytes = new Uint8Array(new ArrayBuffer(raw.length));
+  for (let i = 0; i < raw.length; i += 1) bytes[i] = raw.charCodeAt(i);
+  return bytes;
 }
 
-function fromB64(s: string): Uint8Array<ArrayBuffer> {
-  const raw = atob(s);
-  const out = new Uint8Array(new ArrayBuffer(raw.length));
-  for (let i = 0; i < raw.length; i += 1) out[i] = raw.charCodeAt(i);
-  return out;
-}
-
-/** True only when running as the installed app (home-screen / standalone window). */
 function detectStandalone(): boolean {
   if (typeof window === "undefined") return false;
-  return (
-    window.matchMedia("(display-mode: standalone)").matches ||
-    (navigator as unknown as { standalone?: boolean }).standalone === true
-  );
+  return window.matchMedia("(display-mode: standalone)").matches ||
+    (navigator as Navigator & { standalone?: boolean }).standalone === true;
 }
 
 export function useBiometrics() {
   const [supported, setSupported] = useState(false);
   const [installed, setInstalled] = useState(false);
   const [enabled, setEnabled] = useState(false);
-  const [pinSaved, setPinSaved] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const refresh = useCallback(async () => {
+    try {
+      localStorage.removeItem(BIO_KEYS.PIN_KEY);
+      const serverValue = await getBiometricTransactionsEnabled();
+      setEnabled(serverValue);
+    } catch {
+      setEnabled(false);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
-        const ok =
-          typeof window !== "undefined" &&
-          !!window.PublicKeyCredential &&
-          (await window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable());
+        const ok = typeof window !== "undefined" && !!window.PublicKeyCredential &&
+          await window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
         if (alive) setSupported(!!ok);
       } catch {
         if (alive) setSupported(false);
       }
       if (alive) {
         setInstalled(detectStandalone());
-        setEnabled(!!localStorage.getItem(CRED_KEY));
-        setPinSaved(!!localStorage.getItem(PIN_KEY));
+        await refresh();
       }
     })();
-    return () => {
-      alive = false;
-    };
-  }, []);
+    return () => { alive = false; };
+  }, [refresh]);
 
-  /** Registers a platform credential on this device. Optionally remembers the transaction PIN. */
-  const enable = useCallback(async (pin?: string): Promise<boolean> => {
+  const enable = useCallback(async (): Promise<boolean> => {
     try {
-      const userId = randomChallenge();
-      const cred = (await navigator.credentials.create({
-        publicKey: {
-          challenge: randomChallenge(),
-          rp: { name: "Swift Top", id: window.location.hostname },
-          user: { id: userId, name: "swift-top-user", displayName: "Swift Top" },
-          pubKeyCredParams: [
-            { type: "public-key", alg: -7 },
-            { type: "public-key", alg: -257 },
-          ],
-          authenticatorSelection: {
-            authenticatorAttachment: "platform",
-            userVerification: "required",
-            residentKey: "preferred",
-          },
-          timeout: 60_000,
-          attestation: "none",
-        },
-      })) as PublicKeyCredential | null;
-      if (!cred) return false;
-      localStorage.setItem(CRED_KEY, toB64(cred.rawId));
-      if (pin && /^\d{4}$/.test(pin)) {
-        localStorage.setItem(PIN_KEY, pin);
-        setPinSaved(true);
-      }
-      localStorage.setItem(UNLOCK_KEY, "1");
+      await setBiometricTransactionsEnabled(true);
       setEnabled(true);
       return true;
     } catch {
+      await refresh();
       return false;
     }
-  }, []);
+  }, [refresh]);
 
-  const disable = useCallback(() => {
-    localStorage.removeItem(CRED_KEY);
-    localStorage.removeItem(PIN_KEY);
-    localStorage.removeItem(UNLOCK_KEY);
-    setEnabled(false);
-    setPinSaved(false);
-  }, []);
+  const disable = useCallback(async (): Promise<boolean> => {
+    try {
+      await setBiometricTransactionsEnabled(false);
+      setEnabled(false);
+      return true;
+    } catch {
+      await refresh();
+      return false;
+    }
+  }, [refresh]);
 
-  /** Prompts Fingerprint / Face ID. Returns true only on a successful assertion. */
   const verify = useCallback(async (): Promise<boolean> => {
-    const raw = localStorage.getItem(CRED_KEY);
-    if (!raw) return false;
+    const storedId = localStorage.getItem(BIO_KEYS.CRED_KEY);
+    if (!storedId) return false;
     try {
       const assertion = await navigator.credentials.get({
         publicKey: {
-          challenge: randomChallenge(),
-          allowCredentials: [{ id: fromB64(raw), type: "public-key" }],
+          challenge: localChallenge(),
+          allowCredentials: [{ type: "public-key", id: decodeCredentialId(storedId) }],
           userVerification: "required",
           timeout: 60_000,
         },
@@ -129,33 +102,15 @@ export function useBiometrics() {
     }
   }, []);
 
-  /** Releases the locally stored PIN, but only behind a fresh biometric assertion. */
-  const unlockPin = useCallback(async (): Promise<string | null> => {
-    if (!localStorage.getItem(PIN_KEY)) return null;
-    const ok = await verify();
-    return ok ? localStorage.getItem(PIN_KEY) : null;
-  }, [verify]);
-
-  const rememberPin = useCallback((pin: string) => {
-    if (/^\d{4}$/.test(pin)) {
-      localStorage.setItem(PIN_KEY, pin);
-      setPinSaved(true);
-    }
-  }, []);
-
   return {
     supported,
     installed,
-    /** Enrolment is only offered inside the installed app, per the biometric guard. */
     canEnroll: supported && installed,
     enabled,
-    pinSaved,
+    loading,
     enable,
     disable,
     verify,
-    unlockPin,
-    rememberPin,
+    refresh,
   };
 }
-
-export const BIO_KEYS = { CRED_KEY, PIN_KEY, UNLOCK_KEY };

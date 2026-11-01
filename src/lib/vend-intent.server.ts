@@ -69,8 +69,10 @@ export function vendIntentString(
   service: VendService,
   raw: Record<string, unknown>,
   idempotencyKey: string,
+  expectedRetail: number,
 ): string {
   if (!/^[a-zA-Z0-9_-]{16,100}$/.test(idempotencyKey)) throw new Error("Invalid payment request");
+  if (!Number.isSafeInteger(expectedRetail) || expectedRetail <= 0) throw new Error("Invalid displayed price");
   const details = normalizeVendDetails(service, raw);
-  return JSON.stringify({ service, details, idempotencyKey });
+  return JSON.stringify({ service, details, idempotencyKey, expectedRetail });
 }

@@ -140,8 +140,6 @@ function AuthPage() {
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
     if (phone.length !== 11) return toast.error("Enter a valid 11-digit phone number");
-    if (password.length < 8) return toast.error("Password must be at least 8 characters");
-    setLoading(true);
     if (!/.+@.+\..+/.test(email)) return toast.error("Enter a valid email address");
     setLoading(true);
     try {
@@ -167,7 +165,6 @@ function AuthPage() {
   async function handleVerify(e: React.FormEvent) {
     e.preventDefault();
     if (!/^\d{6}$/.test(otp)) return toast.error("Enter the 6-digit code");
-    setLoading(true);
     setLoading(true);
     try {
       const { error } = await supabase.auth.verifyOtp({
@@ -218,7 +215,6 @@ function AuthPage() {
   async function handleReset(e: React.FormEvent) {
     e.preventDefault();
     if (password.length < 8) return toast.error("Password must be at least 8 characters");
-    setLoading(true);
     setLoading(true);
     try {
       const { error } = await supabase.auth.updateUser({ password });
