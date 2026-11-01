@@ -1,7 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { vendPurchase } from "@/lib/vend.functions";
-import type { VendService } from "@/lib/vend-intent.server";
+
+export type VendService = "airtime" | "data" | "electricity" | "cable" | "education";
 
 export type PurchaseInput = {
   service: VendService;

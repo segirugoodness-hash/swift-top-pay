@@ -1,7 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { resolveVendQuote } from "@/lib/vend-pricing.server";
-import { vendIntentString, type VendService } from "@/lib/vend-intent.server";
+type VendService = "airtime" | "data" | "electricity" | "cable" | "education";
 
 const SERVICE_TYPES = new Set<VendService>(["airtime", "data", "electricity", "cable", "education"]);
 
@@ -24,6 +23,10 @@ export const vendPurchase = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const [{ resolveVendQuote }, { vendIntentString }] = await Promise.all([
+      import("@/lib/vend-pricing.server"),
+      import("@/lib/vend-intent.server"),
+    ]);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const quote = await resolveVendQuote(supabase, data.service, data.details);

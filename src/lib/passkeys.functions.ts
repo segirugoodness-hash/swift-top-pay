@@ -1,8 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { resolveVendQuote } from "@/lib/vend-pricing.server";
-import { vendIntentString, type VendService } from "@/lib/vend-intent.server";
+type VendService = "airtime" | "data" | "electricity" | "cable" | "education";
 
 /**
  * Server-verified passkeys (Fingerprint / Face ID sign-in).
@@ -81,6 +80,10 @@ export const finishPasskeyRegistration = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { challengeId: string; label: string; response: unknown }) => input)
   .handler(async ({ data, context }) => {
+    const [{ resolveVendQuote }, { vendIntentString }] = await Promise.all([
+      import("@/lib/vend-pricing.server"),
+      import("@/lib/vend-intent.server"),
+    ]);
     const { verifyRegistrationResponse } = await import("@simplewebauthn/server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { rpID, origin } = requestOrigin();
