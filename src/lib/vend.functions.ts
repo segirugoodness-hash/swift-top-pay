@@ -10,13 +10,16 @@ export const vendPurchase = createServerFn({ method: "POST" })
   .inputValidator((input: {
     service: VendService;
     details: Record<string, unknown>;
+    expectedRetail: number;
     pin: string;
     idempotencyKey: string;
     biometricChallengeId?: string;
   }) => {
     if (!input || !SERVICE_TYPES.has(input.service)) throw new Error("Unsupported purchase type");
     if (typeof input.pin !== "string" || !/^\d{4}$/.test(input.pin)) throw new Error("Enter your 4-digit transaction PIN");
-    if (!input.details || typeof input.details !== "object' || Array.isArray(input.details)) throw new Error("Invalid purchase details");
+    if (!input.details || typeof input.details !== "object" || Array.isArray(input.details)) throw new Error("Invalid purchase details");
+    if (!Number.isSafeInteger(input.expectedRetail) || input.expectedRetail <= 0) throw new Error("Invalid displayed price");
+    if (!/^[a-zA-Z0-9_-]{16,100}$/.test(input.idempotencyKey)) throw new Error("Invalid payment request");
     return input;
   })
   .handler(async ({ data, context }) => {
@@ -24,7 +27,10 @@ export const vendPurchase = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const quote = await resolveVendQuote(supabase, data.service, data.details);
-    const intentHash = await hashText(vendIntentString(data.service, quote.details, data.idempotencyKey));
+    if (quote.retail !== data.expectedRetail) {
+      throw new Error("Price changed. Please review the updated price before paying.");
+    }
+    const intentHash = await hashText(vendIntentString(data.service, data.details, data.idempotencyKey, quote.retail));
 
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
