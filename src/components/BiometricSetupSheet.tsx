@@ -74,8 +74,7 @@ export function BiometricSetupSheet() {
             </div>
             <DialogTitle className="font-display">Enable Fingerprint / Face ID?</DialogTitle>
             <DialogDescription>
-              Skip typing codes next time — unlock Swift Top and approve payments with your fingerprint or
-              Face ID on this device.
+              Sign in and add a verified biometric check to payments on this device. Your transaction PIN remains required.
             </DialogDescription>
           </DialogHeader>
           <div className="mt-2 space-y-2">

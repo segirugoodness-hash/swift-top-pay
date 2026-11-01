@@ -5,6 +5,15 @@ import { Button } from "@/components/ui/button";
 import { ShieldCheck, Fingerprint } from "lucide-react";
 import { useBiometrics } from "@/hooks/useBiometrics";
 import { toast } from "sonner";
+import { approvePaymentWithPasskey } from "@/lib/passkeys";
+import type { VendService } from "@/lib/purchase";
+
+export type PurchaseIntent = {
+  service: VendService;
+  details: Record<string, unknown>;
+  expectedRetail: number;
+  idempotencyKey: string;
+};
 
 type Props = {
   open: boolean;
@@ -13,24 +22,35 @@ type Props = {
   title?: string;
   description?: string;
   busy?: boolean;
-  onConfirm: (pin: string) => Promise<void> | void;
+  intent?: PurchaseIntent;
+  onConfirm: (pin: string, biometricChallengeId?: string) => Promise<void> | void;
 };
 
-export function PinDialog({ open, onOpenChange, amount, title, description, busy, onConfirm }: Props) {
+export function PinDialog({ open, onOpenChange, amount, title, description, busy, intent, onConfirm }: Props) {
   const [pin, setPin] = useState("");
-  const { enabled, pinSaved, unlockPin } = useBiometrics();
+  const { enabled, loading: biometricLoading } = useBiometrics();
   const [bioBusy, setBioBusy] = useState(false);
 
   useEffect(() => {
     if (!open) setPin("");
   }, [open]);
 
-  async function payWithBiometrics() {
+  async function confirmPayment() {
+    if (pin.length !== 4) return toast.error("Enter your 4-digit transaction PIN");
+    if (busy || bioBusy) return;
     setBioBusy(true);
-    const saved = await unlockPin();
-    setBioBusy(false);
-    if (!saved) return toast.error("Biometric check failed — enter your PIN instead");
-    await onConfirm(saved);
+    try {
+      let biometricChallengeId: string | undefined;
+      if (enabled) {
+        if (!intent) throw new Error("Payment details are unavailable. Please reopen this purchase.");
+        biometricChallengeId = await approvePaymentWithPasskey(intent);
+      }
+      await onConfirm(pin, biometricChallengeId);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Payment approval failed");
+    } finally {
+      setBioBusy(false);
+    }
   }
 
   return (
@@ -55,22 +75,16 @@ export function PinDialog({ open, onOpenChange, amount, title, description, busy
           </InputOTP>
         </div>
         <Button
-          disabled={busy || pin.length !== 4}
-          onClick={() => onConfirm(pin)}
+          disabled={busy || bioBusy || biometricLoading || pin.length !== 4}
+          onClick={() => { confirmPayment().catch(() => undefined); }}
           className="mt-6 h-12 w-full rounded-full text-base font-semibold"
         >
-          {busy ? "Processing…" : `Confirm ₦${amount.toLocaleString()}`}
+          {bioBusy ? <><Fingerprint className="mr-2 h-4 w-4" />{enabled ? "Confirming with biometrics…" : "Processing…"}</> : busy ? "Processing…" : `Confirm ₦${amount.toLocaleString()}`}
         </Button>
-        {enabled && pinSaved && (
-          <Button
-            variant="outline"
-            disabled={busy || bioBusy}
-            onClick={payWithBiometrics}
-            className="mt-3 h-12 w-full rounded-full text-base font-semibold"
-          >
-            <Fingerprint className="mr-2 h-5 w-5" />
-            {bioBusy ? "Waiting…" : "Use Face ID / Fingerprint"}
-          </Button>
+        {enabled && (
+          <p className="mt-3 flex items-center justify-center gap-2 text-center text-xs text-muted-foreground">
+            <Fingerprint className="h-4 w-4" /> Your PIN and a device biometric are both required
+          </p>
         )}
       </SheetContent>
     </Sheet>

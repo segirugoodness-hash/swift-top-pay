@@ -10,13 +10,13 @@ import { useBiometrics } from "@/hooks/useBiometrics";
 import { PasskeyDevices } from "@/components/PasskeyDevices";
 import { SmartVaultCard } from "@/components/SmartVaultCard";
 import { Switch } from "@/components/ui/switch";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { useProfile } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { LogOut, ShieldCheck, User as UserIcon, Phone, Mail, Wallet, KeyRound, Fingerprint } from "lucide-react";
 import { toast } from "sonner";
+import { registerPasskey } from "@/lib/passkeys";
 
 export const Route = createFileRoute("/_authenticated/profile")({
   component: ProfilePage,
@@ -170,9 +170,7 @@ function Row({ icon: Icon, label, value }: { icon: React.ComponentType<{ classNa
 
 /** Device-local Fingerprint / Face ID settings: app lock plus optional PIN-free approvals. */
 function BiometricSettings({ hasPin }: { hasPin: boolean }) {
-  const { canEnroll, enabled, pinSaved, enable, disable, rememberPin } = useBiometrics();
-  const [askPin, setAskPin] = useState(false);
-  const [pin, setPin] = useState("");
+  const { canEnroll, enabled, loading, enable, disable } = useBiometrics();
   const [busy, setBusy] = useState(false);
   const [needApp, setNeedApp] = useState(false);
 
@@ -204,27 +202,29 @@ function BiometricSettings({ hasPin }: { hasPin: boolean }) {
 
   async function toggle(next: boolean) {
     if (!next) {
-      disable();
+      setBusy(true);
+      const disabled = await disable();
+      setBusy(false);
+      if (!disabled) return toast.error("Could not update payment security");
       toast.success("Biometric unlock turned off");
       return;
     }
-    setBusy(true);
-    const ok = await enable();
-    setBusy(false);
-    if (!ok) {
-      // Unsupported, blocked, or a browser preview frame — guide to the app instead of erroring.
+    if (!hasPin) return toast.error("Set a transaction PIN before enabling biometrics");
+    if (!canEnroll) {
       setNeedApp(true);
       return;
     }
-    toast.success("Biometric unlock enabled");
-  }
-
-  function savePin() {
-    if (pin.length !== 4) return toast.error("Enter your 4-digit transaction PIN");
-    rememberPin(pin);
-    setPin("");
-    setAskPin(false);
-    toast.success("You can now approve payments with biometrics");
+    setBusy(true);
+    try {
+      await registerPasskey();
+      const ok = await enable();
+      if (!ok) throw new Error("Could not enable biometric payment confirmation");
+      toast.success("Payments now require your PIN and a biometric check");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Biometric setup was cancelled");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -235,43 +235,13 @@ function BiometricSettings({ hasPin }: { hasPin: boolean }) {
           <Fingerprint className="h-4 w-4" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-foreground">Unlock with biometrics</p>
-          <p className="text-xs text-muted-foreground">Lock the app behind Fingerprint / Face ID</p>
+          <p className="text-sm font-semibold text-foreground">Biometric payment confirmation</p>
+          <p className="text-xs text-muted-foreground">Add Face ID / fingerprint after your transaction PIN</p>
         </div>
-        <Switch checked={enabled} disabled={busy} onCheckedChange={toggle} />
+        <Switch checked={enabled} disabled={busy || loading} onCheckedChange={toggle} />
       </div>
 
-      {enabled && hasPin && (
-        <div className="mt-4 border-t border-border/60 pt-3">
-          {pinSaved ? (
-            <p className="text-xs text-muted-foreground">
-              Payments can be approved with biometrics on this device.
-            </p>
-          ) : askPin ? (
-            <div className="space-y-3">
-              <p className="text-xs text-muted-foreground">
-                Enter your transaction PIN once to approve future payments with biometrics. It stays on this device only.
-              </p>
-              <div className="flex justify-center">
-                <InputOTP maxLength={4} value={pin} onChange={setPin}>
-                  <InputOTPGroup>
-                    {[0, 1, 2, 3].map((i) => (
-                      <InputOTPSlot key={i} index={i} className="h-11 w-10 text-base" />
-                    ))}
-                  </InputOTPGroup>
-                </InputOTP>
-              </div>
-              <Button className="h-10 w-full rounded-full text-xs" onClick={savePin}>
-                Save for biometric approvals
-              </Button>
-            </div>
-          ) : (
-            <Button variant="outline" className="h-10 w-full rounded-full text-xs" onClick={() => setAskPin(true)}>
-              Also approve payments with biometrics
-            </Button>
-          )}
-        </div>
-      )}
+      {enabled && <p className="mt-3 text-xs text-muted-foreground">Every payment requires both your 4-digit PIN and a verified device biometric.</p>}
     </div>
   );
 }
