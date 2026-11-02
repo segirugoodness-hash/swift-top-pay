@@ -170,11 +170,11 @@ function Row({ icon: Icon, label, value }: { icon: React.ComponentType<{ classNa
 
 /** Device-local Fingerprint / Face ID settings: app lock plus optional PIN-free approvals. */
 function BiometricSettings({ hasPin }: { hasPin: boolean }) {
-  const { canEnroll, enabled, loading, enable, disable } = useBiometrics();
+  const { canEnroll, enabled, loading, supported, enable, disable } = useBiometrics();
   const [busy, setBusy] = useState(false);
   const [needApp, setNeedApp] = useState(false);
 
-  if (!canEnroll && !enabled) {
+  if (!supported && !enabled) {
     return (
       <>
         <div className="rounded-2xl border border-border/70 bg-surface/70 p-4">
@@ -183,8 +183,8 @@ function BiometricSettings({ hasPin }: { hasPin: boolean }) {
               <Fingerprint className="h-4 w-4" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-foreground">Unlock with biometrics</p>
-              <p className="text-xs text-muted-foreground">Available in the Swift Top mobile app</p>
+              <p className="text-sm font-semibold text-foreground">Biometric payment confirmation</p>
+              <p className="text-xs text-muted-foreground">This device does not support a platform biometric check</p>
             </div>
           </div>
           <Button
@@ -192,7 +192,7 @@ function BiometricSettings({ hasPin }: { hasPin: boolean }) {
             className="mt-3 h-10 w-full rounded-full text-xs"
             onClick={() => setNeedApp(true)}
           >
-            Enable Fingerprint / Face ID
+            Biometric confirmation unavailable
           </Button>
         </div>
         <BiometricUnavailableDialog open={needApp} onOpenChange={setNeedApp} />
@@ -206,7 +206,7 @@ function BiometricSettings({ hasPin }: { hasPin: boolean }) {
       const disabled = await disable();
       setBusy(false);
       if (!disabled) return toast.error("Could not update payment security");
-      toast.success("Biometric unlock turned off");
+      toast.success("Biometric payment confirmation turned off");
       return;
     }
     if (!hasPin) return toast.error("Set a transaction PIN before enabling biometrics");

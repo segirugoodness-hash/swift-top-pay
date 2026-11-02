@@ -28,7 +28,7 @@ type Props = {
 
 export function PinDialog({ open, onOpenChange, amount, title, description, busy, intent, onConfirm }: Props) {
   const [pin, setPin] = useState("");
-  const { enabled, loading: biometricLoading } = useBiometrics();
+  const { enabled, supported, loading: biometricLoading } = useBiometrics();
   const [bioBusy, setBioBusy] = useState(false);
 
   useEffect(() => {
@@ -41,9 +41,11 @@ export function PinDialog({ open, onOpenChange, amount, title, description, busy
     setBioBusy(true);
     try {
       let biometricChallengeId: string | undefined;
-      if (enabled) {
+      if (enabled && supported) {
         if (!intent) throw new Error("Payment details are unavailable. Please reopen this purchase.");
         biometricChallengeId = await approvePaymentWithPasskey(intent);
+      } else if (enabled) {
+        throw new Error("This device cannot complete the required biometric approval. Turn it off in Profile to continue with your PIN.");
       }
       await onConfirm(pin, biometricChallengeId);
     } catch (error) {

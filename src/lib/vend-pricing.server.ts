@@ -3,7 +3,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { AIRTIME_RATES } from "@/lib/airtime-pricing";
 import { applyMarkup, type MarkupRow } from "@/lib/pricing";
 import { CABLE_PROVIDERS, EXAMS } from "@/lib/vtu-options";
-import { normalizeVendDetails, type VendDetails, type VendService } from "@/lib/vend-intent";
+import { normalizeVendDetails, type VendDetails, type VendService } from "@/lib/vend-intent.server";
 
 export const VEND_ENDPOINTS: Record<VendService, string> = {
   airtime: "/v1/vend/airtime",
