@@ -12,7 +12,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PinDialog } from "@/components/PinDialog";
 import { spendWallet } from "@/lib/purchase";
 import { applyMarkup, type MarkupRow } from "@/lib/pricing";
-import { LOCAL_PLAN_CACHE } from "@/lib/data-plans-cache";
 import { useProfile } from "@/hooks/useProfile";
 
 
@@ -62,14 +61,7 @@ function DataPage() {
     const grouped: Record<CatKey, RetailPlan[]> = { sme: [], daily: [], three_day: [], weekly: [], monthly: [] };
 
     const live: DBPlan[] = plans.filter((p) => p.network === network);
-    const cached: DBPlan[] = LOCAL_PLAN_CACHE.filter((p) => p.network === network).map((p) => ({
-      ...p,
-      is_active: true,
-      external_id: null,
-    }));
-    // Live rows always win; the local cache only fills categories the catalogue has no rows for.
-    const liveCats = new Set(live.map((p) => p.category));
-    const source = [...live, ...cached.filter((p) => !liveCats.has(p.category))];
+    const source = live;
 
     for (const p of source) {
       const wholesale = Number(p.wholesale_price);

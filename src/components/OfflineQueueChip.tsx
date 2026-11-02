@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import { queuedVends } from "@/lib/offline-queue";
 
 /**
  * Floating indicator for purchases saved while the phone was offline.
@@ -14,5 +13,5 @@ export function OfflineQueueChip() {
       // Storage may be unavailable in private browsing.
     }
   }, []);
-  return queuedVends().length ? null : null;
+  return null;
 }

@@ -56,7 +56,7 @@ export function BiometricSetupSheet() {
       }
     }
     // The installed app additionally gets the local app lock and PIN-free approvals.
-    const localOk = canEnroll ? await enable() : false;
+    const localOk = canEnroll && registered ? await enable() : false;
     setBusy(false);
     close();
     if (registered) toast.success("Fingerprint / Face ID sign-in is on for this device");

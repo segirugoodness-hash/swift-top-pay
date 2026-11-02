@@ -4,7 +4,8 @@ import {
   getBiometricTransactionsEnabled,
 } from "@/lib/biometrics.functions";
 
-export const BIO_KEYS = { CRED_KEY: "st_bio_cred", PIN_KEY: "st_bio_pin", UNLOCK_KEY: "st_bio_unlocked" };
+export const BIO_KEYS = { CRED_KEY: "st_bio_cred", UNLOCK_KEY: "st_bio_unlocked" };
+const LEGACY_PIN_KEY = "st_bio_pin";
 
 function localChallenge(): Uint8Array<ArrayBuffer> {
   const bytes = new Uint8Array(new ArrayBuffer(32));
@@ -34,7 +35,7 @@ export function useBiometrics() {
 
   const refresh = useCallback(async () => {
     try {
-      localStorage.removeItem(BIO_KEYS.PIN_KEY);
+      localStorage.removeItem(LEGACY_PIN_KEY);
       const serverValue = await getBiometricTransactionsEnabled();
       setEnabled(serverValue);
     } catch {
