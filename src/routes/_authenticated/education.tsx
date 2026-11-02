@@ -25,6 +25,7 @@ function EducationPage() {
   const [qty, setQty] = useState("1");
   const [pinOpen, setPinOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [idempotencyKey, setIdempotencyKey] = useState("");
   const qc = useQueryClient();
   const { ensureBalance } = useBalanceGuard();
   const total = priceOf(exam) * (parseInt(qty || "0", 10) || 0);
@@ -34,25 +35,32 @@ function EducationPage() {
     const n = parseInt(qty || "0", 10);
     if (!n || n < 1) return toast.error("Enter a valid quantity");
     if (!ensureBalance(total)) return;
+    setIdempotencyKey(crypto.randomUUID());
     setPinOpen(true);
   }
 
-  async function confirm(pin: string) {
+  async function confirm(pin: string, biometricChallengeId?: string) {
     const n = parseInt(qty || "0", 10);
     setBusy(true);
-    const ok = await spendWallet({
-      type: "education",
-      amount: total,
-      pin,
-      metadata: { exam, quantity: n },
-      otapayPayload: { exam, quantity: n, amount: total },
-    });
-    setBusy(false);
-    if (!ok) return;
-    setPinOpen(false);
-    toast.success(`${n} ${exam.toUpperCase()} PIN(s) purchased`);
-    qc.invalidateQueries({ queryKey: ["profile"] });
-    qc.invalidateQueries({ queryKey: ["transactions", "recent"] });
+    try {
+      const ok = await spendWallet({
+        service: "education",
+        details: { exam, quantity: n },
+        expectedRetail: total,
+        pin,
+        idempotencyKey,
+        biometricChallengeId,
+      });
+      if (!ok) return;
+      setPinOpen(false);
+      toast.success(`${n} ${exam.toUpperCase()} PIN(s) purchased`);
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["profile"] }),
+        qc.invalidateQueries({ queryKey: ["transactions", "recent"] }),
+      ]);
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -89,7 +97,9 @@ function EducationPage() {
         </Button>
       </form>
 
-      <PinDialog open={pinOpen} onOpenChange={setPinOpen} amount={total} busy={busy} onConfirm={confirm} />
+      <PinDialog open={pinOpen} onOpenChange={setPinOpen} amount={total} busy={busy}
+        intent={Number(qty) >= 1 && Number(qty) <= 20 ? { service: "education", details: { exam, quantity: Number(qty) }, expectedRetail: total, idempotencyKey } : undefined}
+        onConfirm={confirm} />
     </div>
   );
 }
