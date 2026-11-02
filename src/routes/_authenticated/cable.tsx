@@ -29,6 +29,7 @@ function CablePage() {
   const [pkg, setPkg] = useState("");
   const [pinOpen, setPinOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [idempotencyKey, setIdempotencyKey] = useState("");
   const qc = useQueryClient();
   const { ensureBalance } = useBalanceGuard();
   const provider = CABLE_PROVIDERS.find((p) => p.id === providerId)!;
@@ -39,24 +40,31 @@ function CablePage() {
     if (smartcard.length < 10) return toast.error("Enter a valid smartcard number");
     if (!pkg) return toast.error("Select a package");
     if (!ensureBalance(amt)) return;
+    setIdempotencyKey(crypto.randomUUID());
     setPinOpen(true);
   }
 
-  async function confirm(pin: string) {
+  async function confirm(pin: string, biometricChallengeId?: string) {
     setBusy(true);
-    const ok = await spendWallet({
-      type: "cable",
-      amount: amt,
-      pin,
-      metadata: { provider: provider.name, smartcard, package: pkg },
-      otapayPayload: { provider: provider.id, smartcard, package: pkg, amount: amt },
-    });
-    setBusy(false);
-    if (!ok) return;
-    setPinOpen(false);
-    toast.success(`${provider.name} — ${pkg} activated`);
-    qc.invalidateQueries({ queryKey: ["profile"] });
-    qc.invalidateQueries({ queryKey: ["transactions", "recent"] });
+    try {
+      const ok = await spendWallet({
+        service: "cable",
+        details: { provider: provider.id, smartcard, package: pkg },
+        expectedRetail: amt,
+        pin,
+        idempotencyKey,
+        biometricChallengeId,
+      });
+      if (!ok) return;
+      setPinOpen(false);
+      toast.success(`${provider.name} — ${pkg} activated`);
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["profile"] }),
+        qc.invalidateQueries({ queryKey: ["transactions", "recent"] }),
+      ]);
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -98,7 +106,9 @@ function CablePage() {
         </Button>
       </form>
 
-      <PinDialog open={pinOpen} onOpenChange={setPinOpen} amount={amt} busy={busy} onConfirm={confirm} />
+      <PinDialog open={pinOpen} onOpenChange={setPinOpen} amount={amt} busy={busy}
+        intent={pkg && smartcard.length >= 10 ? { service: "cable", details: { provider: provider.id, smartcard, package: pkg }, expectedRetail: amt, idempotencyKey } : undefined}
+        onConfirm={confirm} />
     </div>
   );
 }
