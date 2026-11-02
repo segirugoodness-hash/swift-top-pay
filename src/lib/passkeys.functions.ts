@@ -237,6 +237,10 @@ export const startPaymentPasskey = createServerFn({ method: "POST" })
     idempotencyKey: string;
   }) => input)
   .handler(async ({ data, context }) => {
+    const [{ resolveVendQuote }, { vendIntentString }] = await Promise.all([
+      import("@/lib/vend-pricing.server"),
+      import("@/lib/vend-intent.server"),
+    ]);
     const { data: profile, error: profileError } = await context.supabase
       .from("profiles").select("biometric_transactions_enabled").eq("id", context.userId).maybeSingle();
     if (profileError || !profile?.biometric_transactions_enabled) throw new Error("Payment biometrics are not enabled");

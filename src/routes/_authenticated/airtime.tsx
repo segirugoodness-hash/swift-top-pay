@@ -23,6 +23,7 @@ function AirtimePage() {
   const [amount, setAmount] = useState("");
   const [pinOpen, setPinOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [idempotencyKey, setIdempotencyKey] = useState("");
   const qc = useQueryClient();
   const { ensureBalance } = useBalanceGuard();
 
@@ -34,27 +35,33 @@ function AirtimePage() {
     if (phone.length !== 11) return toast.error("Enter a valid 11-digit phone number");
     if (!face || face < 50) return toast.error("Minimum airtime is ₦50");
     if (!ensureBalance(quote?.retail ?? face)) return;
+    setIdempotencyKey(crypto.randomUUID());
     setPinOpen(true);
   }
 
-  async function confirm(pin: string) {
+  async function confirm(pin: string, biometricChallengeId?: string) {
     if (!quote) return;
     setBusy(true);
-    const ok = await spendWallet({
-      type: "airtime",
-      retail: quote.retail,
-      wholesale: quote.wholesale,
-      pin,
-      metadata: { network, phone, face_amount: face, cashback: quote.cashback },
-      otapayPayload: { network, phone, amount: face },
-    });
-    setBusy(false);
-    if (!ok) return;
-    setPinOpen(false);
-    toast.success(`₦${face.toLocaleString()} airtime sent to ${phone}${quote.cashback ? ` · You saved ₦${quote.cashback}` : ""}`);
-    qc.invalidateQueries({ queryKey: ["profile"] });
-    qc.invalidateQueries({ queryKey: ["transactions", "recent"] });
-    setAmount("");
+    try {
+      const ok = await spendWallet({
+        service: "airtime",
+        details: { network, phone, face_amount: face },
+        expectedRetail: quote.retail,
+        pin,
+        idempotencyKey,
+        biometricChallengeId,
+      });
+      if (!ok) return;
+      setPinOpen(false);
+      toast.success(`₦${face.toLocaleString()} airtime sent to ${phone}${quote.cashback ? ` · You saved ₦${quote.cashback}` : ""}`);
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["profile"] }),
+        qc.invalidateQueries({ queryKey: ["transactions", "recent"] }),
+      ]);
+      setAmount("");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -115,7 +122,14 @@ function AirtimePage() {
         </Button>
       </form>
 
-      <PinDialog open={pinOpen} onOpenChange={setPinOpen} amount={quote?.retail ?? 0} busy={busy} onConfirm={confirm} />
+      <PinDialog
+        open={pinOpen}
+        onOpenChange={setPinOpen}
+        amount={quote?.retail ?? 0}
+        busy={busy}
+        intent={quote && phone.length === 11 ? { service: "airtime", details: { network, phone, face_amount: face }, expectedRetail: quote.retail, idempotencyKey } : undefined}
+        onConfirm={confirm}
+      />
     </div>
   );
 }

@@ -29,6 +29,7 @@ function ElectricityPage() {
   const [amount, setAmount] = useState("");
   const [pinOpen, setPinOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [idempotencyKey, setIdempotencyKey] = useState("");
   const qc = useQueryClient();
   const { ensureBalance } = useBalanceGuard();
 
@@ -41,26 +42,33 @@ function ElectricityPage() {
     const amt = parseInt(amount, 10);
     if (!amt || amt < 500) return toast.error("Minimum amount is ₦500");
     if (!ensureBalance(amt)) return;
+    setIdempotencyKey(crypto.randomUUID());
     setPinOpen(true);
   }
 
-  async function confirm(pin: string) {
+  async function confirm(pin: string, biometricChallengeId?: string) {
     const amt = parseInt(amount, 10);
     setBusy(true);
-    const ok = await spendWallet({
-      type: "electricity",
-      amount: amt,
-      pin,
-      metadata: { disco, meter, meterType },
-      otapayPayload: { disco, meter_number: meter, meter_type: meterType, amount: amt },
-    });
-    setBusy(false);
-    if (!ok) return;
-    setPinOpen(false);
-    toast.success(`₦${amt.toLocaleString()} sent to meter ${meter}`);
-    qc.invalidateQueries({ queryKey: ["profile"] });
-    qc.invalidateQueries({ queryKey: ["transactions", "recent"] });
-    setAmount("");
+    try {
+      const ok = await spendWallet({
+        service: "electricity",
+        details: { disco, meter, meterType, face_amount: amt },
+        expectedRetail: amt,
+        pin,
+        idempotencyKey,
+        biometricChallengeId,
+      });
+      if (!ok) return;
+      setPinOpen(false);
+      toast.success(`₦${amt.toLocaleString()} sent to meter ${meter}`);
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["profile"] }),
+        qc.invalidateQueries({ queryKey: ["transactions", "recent"] }),
+      ]);
+      setAmount("");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -111,7 +119,9 @@ function ElectricityPage() {
         </Button>
       </form>
 
-      <PinDialog open={pinOpen} onOpenChange={setPinOpen} amount={parseInt(amount || "0", 10)} busy={busy} onConfirm={confirm} />
+      <PinDialog open={pinOpen} onOpenChange={setPinOpen} amount={parseInt(amount || "0", 10)} busy={busy}
+        intent={disco && METER_REGEX.test(meter) && Number(amount) >= 500 ? { service: "electricity", details: { disco, meter, meterType, face_amount: Number(amount) }, expectedRetail: Number(amount), idempotencyKey } : undefined}
+        onConfirm={confirm} />
     </div>
   );
 }

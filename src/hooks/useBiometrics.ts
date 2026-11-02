@@ -4,7 +4,8 @@ import {
   getBiometricTransactionsEnabled,
 } from "@/lib/biometrics.functions";
 
-export const BIO_KEYS = { CRED_KEY: "st_bio_cred", PIN_KEY: "st_bio_pin", UNLOCK_KEY: "st_bio_unlocked" };
+export const BIO_KEYS = { CRED_KEY: "st_bio_cred", UNLOCK_KEY: "st_bio_unlocked" };
+const LEGACY_PIN_KEY = "st_bio_pin";
 
 function localChallenge(): Uint8Array<ArrayBuffer> {
   const bytes = new Uint8Array(new ArrayBuffer(32));
@@ -30,11 +31,12 @@ export function useBiometrics() {
   const [supported, setSupported] = useState(false);
   const [installed, setInstalled] = useState(false);
   const [enabled, setEnabled] = useState(false);
+  const [localEnabled, setLocalEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
     try {
-      localStorage.removeItem(BIO_KEYS.PIN_KEY);
+      localStorage.removeItem(LEGACY_PIN_KEY);
       const serverValue = await getBiometricTransactionsEnabled();
       setEnabled(serverValue);
     } catch {
@@ -56,6 +58,11 @@ export function useBiometrics() {
       }
       if (alive) {
         setInstalled(detectStandalone());
+        try {
+          setLocalEnabled(!!localStorage.getItem("st_bio_cred"));
+        } catch {
+          setLocalEnabled(false);
+        }
         await refresh();
       }
     })();
@@ -64,8 +71,11 @@ export function useBiometrics() {
 
   const enable = useCallback(async (): Promise<boolean> => {
     try {
+      const rawId = localStorage.getItem(BIO_KEYS.CRED_KEY);
+      if (!rawId) throw new Error("Set up a passkey on this device first");
       await setBiometricTransactionsEnabled(true);
       setEnabled(true);
+      setLocalEnabled(true);
       return true;
     } catch {
       await refresh();
@@ -83,6 +93,38 @@ export function useBiometrics() {
       return false;
     }
   }, [refresh]);
+
+  const enableLocalUnlock = useCallback(async (): Promise<boolean> => {
+    try {
+      const credential = await navigator.credentials.create({
+        publicKey: {
+          challenge: localChallenge(),
+          rp: { name: "Swift Top", id: window.location.hostname },
+          user: { id: localChallenge(), name: "swift-top-user", displayName: "Swift Top" },
+          pubKeyCredParams: [{ type: "public-key", alg: -7 }, { type: "public-key", alg: -257 }],
+          authenticatorSelection: { authenticatorAttachment: "platform", userVerification: "required", residentKey: "preferred" },
+          timeout: 60_000,
+          attestation: "none",
+        },
+      }) as PublicKeyCredential | null;
+      if (!credential) return false;
+      const bytes = new Uint8Array(credential.rawId);
+      let binary = "";
+      bytes.forEach((byte) => { binary += String.fromCharCode(byte); });
+      localStorage.setItem(BIO_KEYS.CRED_KEY, btoa(binary));
+      localStorage.setItem(BIO_KEYS.UNLOCK_KEY, "1");
+      setLocalEnabled(true);
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const disableLocalUnlock = useCallback(() => {
+    localStorage.removeItem(BIO_KEYS.CRED_KEY);
+    localStorage.removeItem(BIO_KEYS.UNLOCK_KEY);
+    setLocalEnabled(false);
+  }, []);
 
   const verify = useCallback(async (): Promise<boolean> => {
     const storedId = localStorage.getItem(BIO_KEYS.CRED_KEY);
@@ -107,9 +149,12 @@ export function useBiometrics() {
     installed,
     canEnroll: supported && installed,
     enabled,
+    localEnabled,
     loading,
     enable,
     disable,
+    enableLocalUnlock,
+    disableLocalUnlock,
     verify,
     refresh,
   };

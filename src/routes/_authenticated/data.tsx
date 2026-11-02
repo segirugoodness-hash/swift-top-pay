@@ -12,7 +12,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PinDialog } from "@/components/PinDialog";
 import { spendWallet } from "@/lib/purchase";
 import { applyMarkup, type MarkupRow } from "@/lib/pricing";
-import { LOCAL_PLAN_CACHE } from "@/lib/data-plans-cache";
 import { useProfile } from "@/hooks/useProfile";
 
 
@@ -40,6 +39,7 @@ function DataPage() {
   const [plan, setPlan] = useState<RetailPlan | null>(null);
   const [pinOpen, setPinOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [idempotencyKey, setIdempotencyKey] = useState("");
   const [tab, setTab] = useState<CatKey>("sme");
   const qc = useQueryClient();
   const { data: profile } = useProfile();
@@ -61,14 +61,7 @@ function DataPage() {
     const grouped: Record<CatKey, RetailPlan[]> = { sme: [], daily: [], three_day: [], weekly: [], monthly: [] };
 
     const live: DBPlan[] = plans.filter((p) => p.network === network);
-    const cached: DBPlan[] = LOCAL_PLAN_CACHE.filter((p) => p.network === network).map((p) => ({
-      ...p,
-      is_active: true,
-      external_id: null,
-    }));
-    // Live rows always win; the local cache only fills categories the catalogue has no rows for.
-    const liveCats = new Set(live.map((p) => p.category));
-    const source = [...live, ...cached.filter((p) => !liveCats.has(p.category))];
+    const source = live;
 
     for (const p of source) {
       const wholesale = Number(p.wholesale_price);
@@ -100,28 +93,34 @@ function DataPage() {
         description: `You need ₦${(plan.price - balance).toLocaleString()} more. Fund your wallet from the dashboard.`,
       });
     }
+    setIdempotencyKey(crypto.randomUUID());
     setPinOpen(true);
   }
 
 
-  async function confirm(pin: string) {
+  async function confirm(pin: string, biometricChallengeId?: string) {
     if (!plan) return;
     setBusy(true);
-    const ok = await spendWallet({
-      type: "data",
-      retail: plan.price,
-      wholesale: plan.wholesale,
-      pin,
-      metadata: { network, phone, plan: plan.name, plan_id: plan.id },
-      otapayPayload: { network, phone, plan_id: plan.external_id ?? plan.id },
-    });
-    setBusy(false);
-    if (!ok) return;
-    setPinOpen(false);
-    toast.success(`${plan.name} sent to ${phone}`);
-    qc.invalidateQueries({ queryKey: ["profile"] });
-    qc.invalidateQueries({ queryKey: ["transactions", "recent"] });
-    setPlan(null);
+    try {
+      const ok = await spendWallet({
+        service: "data",
+        details: { network, phone, plan_id: plan.external_id ?? plan.id },
+        expectedRetail: plan.price,
+        pin,
+        idempotencyKey,
+        biometricChallengeId,
+      });
+      if (!ok) return;
+      setPinOpen(false);
+      toast.success(`${plan.name} sent to ${phone}`);
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["profile"] }),
+        qc.invalidateQueries({ queryKey: ["transactions", "recent"] }),
+      ]);
+      setPlan(null);
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -201,7 +200,14 @@ function DataPage() {
         </Button>
       </form>
 
-      <PinDialog open={pinOpen} onOpenChange={setPinOpen} amount={plan?.price ?? 0} busy={busy} onConfirm={confirm} />
+      <PinDialog
+        open={pinOpen}
+        onOpenChange={setPinOpen}
+        amount={plan?.price ?? 0}
+        busy={busy}
+        intent={plan && phone.length === 11 ? { service: "data", details: { network, phone, plan_id: plan.external_id ?? plan.id }, expectedRetail: plan.price, idempotencyKey } : undefined}
+        onConfirm={confirm}
+      />
     </div>
   );
 }
