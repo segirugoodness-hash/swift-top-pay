@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { PinDialog } from "@/components/PinDialog";
-import { spendWallet } from "@/lib/purchase";
+import { requestWithdrawal } from "@/lib/withdraw.functions";
 import { useProfile } from "@/hooks/useProfile";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -37,13 +37,14 @@ export function WithdrawDialog({ open, onOpenChange }: Props) {
   async function confirm(pin: string) {
     setBusy(true);
     try {
-      const ok = await spendWallet({
-        type: "withdrawal",
+      const result = await requestWithdrawal({ data: {
         amount: amt,
         pin,
-        metadata: { bank, account_number: accountNumber, account_name: accountName },
-      });
-      if (ok) {
+        bank,
+        accountNumber,
+        accountName,
+      } });
+      if (result.ok) {
         toast.success("Withdrawal request submitted");
         qc.invalidateQueries({ queryKey: ["profile"] });
         qc.invalidateQueries({ queryKey: ["transactions"] });
@@ -51,6 +52,8 @@ export function WithdrawDialog({ open, onOpenChange }: Props) {
         onOpenChange(false);
         setAmount(""); setBank(""); setAccountNumber(""); setAccountName("");
       }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Withdrawal could not be submitted");
     } finally {
       setBusy(false);
     }

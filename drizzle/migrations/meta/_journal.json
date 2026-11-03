@@ -15,6 +15,13 @@
       "when": 1792215718697,
       "tag": "0001_secure_vend_authorization",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793739239975,
+      "tag": "0002_create_user_withdrawal",
+      "breakpoints": true
     }
   ]
 }
