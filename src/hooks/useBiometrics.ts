@@ -73,7 +73,7 @@ export function useBiometrics() {
     try {
       const rawId = localStorage.getItem(BIO_KEYS.CRED_KEY);
       if (!rawId) throw new Error("Set up a passkey on this device first");
-      await setBiometricTransactionsEnabled(true);
+      await setBiometricTransactionsEnabled({ data: true });
       setEnabled(true);
       setLocalEnabled(true);
       return true;
@@ -85,7 +85,7 @@ export function useBiometrics() {
 
   const disable = useCallback(async (): Promise<boolean> => {
     try {
-      await setBiometricTransactionsEnabled(false);
+      await setBiometricTransactionsEnabled({ data: false });
       setEnabled(false);
       return true;
     } catch {
