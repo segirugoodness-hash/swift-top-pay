@@ -70,17 +70,18 @@ export const vendPurchase = createServerFn({ method: "POST" })
     const reference = `stv_${data.service}_${userId.slice(0, 8)}_${data.idempotencyKey}`;
     let txnId: string | null = null;
     try {
-      const { data: newTxnId, error: beginErr } = await supabaseAdmin.rpc("begin_vend_authorized", {
+      const beginArgs = {
         _user_id: userId,
         _type: data.service,
         _retail: quote.retail,
         _wholesale: quote.wholesale,
         _pin: data.pin,
         _reference: reference,
-        _metadata: quote.metadata as never,
+        _metadata: quote.metadata,
         _biometric_challenge_id: biometricChallengeId,
         _intent_hash: biometricChallengeId ? intentHash : null,
-      });
+      };
+      const { data: newTxnId, error: beginErr } = await supabaseAdmin.rpc("begin_vend_authorized", beginArgs as never);
       if (beginErr) throw new Error(beginErr.message);
       txnId = newTxnId;
 
@@ -123,7 +124,7 @@ export const vendPurchase = createServerFn({ method: "POST" })
 
       const { error: completeError } = await supabaseAdmin.rpc("complete_vend", {
         _txn_id: txnId,
-        _provider_ref: providerRef,
+        _provider_ref: providerRef ?? undefined,
       });
       if (completeError) throw new Error("Provider completed the purchase; settlement is being reconciled");
 

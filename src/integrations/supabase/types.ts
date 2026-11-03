@@ -602,6 +602,16 @@ export type Database = {
         Args: { _service_type: string }
         Returns: undefined
       }
+      request_withdrawal: {
+        Args: {
+          _account_name: string
+          _account_number: string
+          _amount: number
+          _bank_name: string
+          _pin: string
+        }
+        Returns: string
+      }
       set_biometric_transactions_enabled: {
         Args: { _enabled: boolean }
         Returns: undefined

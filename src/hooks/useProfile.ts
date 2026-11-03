@@ -41,18 +41,3 @@ export function useProfile() {
   });
 }
 
-export function useAdminSettings() {
-  return useQuery({
-    queryKey: ["admin_settings"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("admin_settings")
-        .select("*")
-        .eq("id", "global")
-        .maybeSingle();
-      if (error) throw error;
-      return data as { id: string; use_dedicated_accounts: boolean } | null;
-    },
-    staleTime: 60_000,
-  });
-}
