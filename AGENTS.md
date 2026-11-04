@@ -11,3 +11,4 @@
 
 - Centralize Supabase auth-transition handling in the root so shared profile consumers do not create duplicate listeners or retain another user's cached data.
 - Keep all wallet-vend pricing, payment authorization, provider execution, and ledger settlement inside authenticated server functions and database transactions; clients may present quotes but never supply trusted costs, provider paths, or payment approval state.
+- Wallet debits (purchases, withdrawals, vault transfers) go through security-definer database functions that re-verify PIN, balance, and atomicity server-side; never debit the wallet from client-side calls or ad-hoc server updates.
