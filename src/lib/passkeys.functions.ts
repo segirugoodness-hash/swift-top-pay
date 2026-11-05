@@ -1,5 +1,4 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 type VendService = "airtime" | "data" | "electricity" | "cable" | "education";
 
@@ -11,21 +10,9 @@ type VendService = "airtime" | "data" | "electricity" | "cable" | "education";
  * challenge is single-use and expires after 5 minutes.
  */
 
-type WebAuthnOrigin = { rpID: string; origin: string };
-
 async function hashText(value: string): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
-function requestOrigin(): WebAuthnOrigin {
-  const req = getRequest();
-  const explicit = req?.headers.get("origin");
-  const host = req?.headers.get("host") ?? "localhost";
-  const proto = req?.headers.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-  const origin = explicit ?? `${proto}://${host}`;
-  const rpID = new URL(origin).hostname;
-  return { rpID, origin };
 }
 
 /** Step 1 of enrolment — returns the browser options and a challenge id to send back. */
@@ -34,6 +21,7 @@ export const startPasskeyRegistration = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     const { generateRegistrationOptions } = await import("@simplewebauthn/server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { requestOrigin } = await import("@/lib/request-origin.server");
     const { rpID, origin } = requestOrigin();
     const email = (context.claims["email"] as string | undefined) ?? "swift-top-user";
 
@@ -86,6 +74,7 @@ export const finishPasskeyRegistration = createServerFn({ method: "POST" })
     ]);
     const { verifyRegistrationResponse } = await import("@simplewebauthn/server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { requestOrigin } = await import("@/lib/request-origin.server");
     const { rpID, origin } = requestOrigin();
 
     const { data: ch } = await supabaseAdmin
@@ -141,6 +130,7 @@ export const finishPasskeyRegistration = createServerFn({ method: "POST" })
 export const startPasskeyLogin = createServerFn({ method: "POST" }).handler(async () => {
   const { generateAuthenticationOptions } = await import("@simplewebauthn/server");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { requestOrigin } = await import("@/lib/request-origin.server");
   const { rpID, origin } = requestOrigin();
 
   const options = await generateAuthenticationOptions({
@@ -167,6 +157,7 @@ export const finishPasskeyLogin = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { verifyAuthenticationResponse } = await import("@simplewebauthn/server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { requestOrigin } = await import("@/lib/request-origin.server");
     const { rpID, origin } = requestOrigin();
 
     const { data: ch } = await supabaseAdmin
@@ -256,6 +247,7 @@ export const startPaymentPasskey = createServerFn({ method: "POST" })
     const intentHash = await hashText(vendIntentString(data.service, data.details, data.idempotencyKey, quote.retail));
     const { generateAuthenticationOptions } = await import("@simplewebauthn/server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { requestOrigin } = await import("@/lib/request-origin.server");
     const { rpID } = requestOrigin();
     const options = await generateAuthenticationOptions({
       rpID,
@@ -283,6 +275,7 @@ export const finishPaymentPasskey = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { verifyAuthenticationResponse } = await import("@simplewebauthn/server");
+    const { requestOrigin } = await import("@/lib/request-origin.server");
     const { rpID, origin } = requestOrigin();
     const { data: challenge, error: challengeError } = await supabaseAdmin
       .from("passkey_challenges")
