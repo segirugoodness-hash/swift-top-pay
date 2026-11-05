@@ -23,6 +23,7 @@ export const startPasskeyRegistration = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     const { generateRegistrationOptions } = await import("@simplewebauthn/server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { requestOrigin } = await import("@/lib/request-origin.server");
     const { rpID, origin } = requestOrigin();
     const email = (context.claims["email"] as string | undefined) ?? "swift-top-user";
 
@@ -75,6 +76,7 @@ export const finishPasskeyRegistration = createServerFn({ method: "POST" })
     ]);
     const { verifyRegistrationResponse } = await import("@simplewebauthn/server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { requestOrigin } = await import("@/lib/request-origin.server");
     const { rpID, origin } = requestOrigin();
 
     const { data: ch } = await supabaseAdmin
@@ -130,6 +132,7 @@ export const finishPasskeyRegistration = createServerFn({ method: "POST" })
 export const startPasskeyLogin = createServerFn({ method: "POST" }).handler(async () => {
   const { generateAuthenticationOptions } = await import("@simplewebauthn/server");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { requestOrigin } = await import("@/lib/request-origin.server");
   const { rpID, origin } = requestOrigin();
 
   const options = await generateAuthenticationOptions({
