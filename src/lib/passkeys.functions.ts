@@ -10,8 +10,6 @@ type VendService = "airtime" | "data" | "electricity" | "cable" | "education";
  * challenge is single-use and expires after 5 minutes.
  */
 
-type WebAuthnOrigin = { rpID: string; origin: string };
-
 async function hashText(value: string): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
