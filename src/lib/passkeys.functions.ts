@@ -1,5 +1,4 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 type VendService = "airtime" | "data" | "electricity" | "cable" | "education";
 
@@ -16,16 +15,6 @@ type WebAuthnOrigin = { rpID: string; origin: string };
 async function hashText(value: string): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
-function requestOrigin(): WebAuthnOrigin {
-  const req = getRequest();
-  const explicit = req?.headers.get("origin");
-  const host = req?.headers.get("host") ?? "localhost";
-  const proto = req?.headers.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-  const origin = explicit ?? `${proto}://${host}`;
-  const rpID = new URL(origin).hostname;
-  return { rpID, origin };
 }
 
 /** Step 1 of enrolment — returns the browser options and a challenge id to send back. */
