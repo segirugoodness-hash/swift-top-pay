@@ -159,6 +159,7 @@ export const finishPasskeyLogin = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { verifyAuthenticationResponse } = await import("@simplewebauthn/server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { requestOrigin } = await import("@/lib/request-origin.server");
     const { rpID, origin } = requestOrigin();
 
     const { data: ch } = await supabaseAdmin
@@ -248,6 +249,7 @@ export const startPaymentPasskey = createServerFn({ method: "POST" })
     const intentHash = await hashText(vendIntentString(data.service, data.details, data.idempotencyKey, quote.retail));
     const { generateAuthenticationOptions } = await import("@simplewebauthn/server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { requestOrigin } = await import("@/lib/request-origin.server");
     const { rpID } = requestOrigin();
     const options = await generateAuthenticationOptions({
       rpID,
@@ -275,6 +277,7 @@ export const finishPaymentPasskey = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { verifyAuthenticationResponse } = await import("@simplewebauthn/server");
+    const { requestOrigin } = await import("@/lib/request-origin.server");
     const { rpID, origin } = requestOrigin();
     const { data: challenge, error: challengeError } = await supabaseAdmin
       .from("passkey_challenges")
